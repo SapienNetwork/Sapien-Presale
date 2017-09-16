@@ -1,0 +1,14 @@
+{
+  "package_name": "sapien",
+  "version": "0.0.1",
+  "description": "Sapien.me ICO Contract",
+  "authors": [
+    "Elliot Shohet <elliot.shohet@gmail.com>"
+  ],
+  "keywords": [
+    "ethereum"
+  ],
+  "dependencies": {
+    "zeppelin": "^1.2.0"
+  }
+}
