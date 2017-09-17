@@ -12,6 +12,10 @@ module.exports = async function(deployer, network, accounts) {
     await deployer.deploy(SapienCoin, {from: accounts[0]});
     await deployer.deploy(SapienCrowdsale, {from: accounts[0]});
 
+    //set Crowdsale as current controller, allowing the crowdsale to mint new tokens
+    await web3.eth.contract(SapienCoin.abi).at(SapienCoin.address)
+        .changeController(SapienCrowdsale.address, {from: accounts[0]});
+
     //initalize crowdsale
     await web3.eth.contract(SapienCrowdsale.abi).at(SapienCrowdsale.address)
         .initalize(startBlock, endBlock, rate, wallet, cap, SapienCoin.address, {from: accounts[0], gas: 900000});
