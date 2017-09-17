@@ -7,11 +7,11 @@ This repository contains smart contracts that Sapien.me will use for various pur
 ## Setup
 ```bash
 npm install
+npm run eth_install
 ```
-## Setup
+## Deploying
 ```bash
 npm run testrpc
-npm run eth_install
 npm run deploy
 ```
 
