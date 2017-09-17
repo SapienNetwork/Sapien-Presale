@@ -1,4 +1,5 @@
 let SapienCrowdsale = artifacts.require("./SapienCrowdSale.sol");
+let SapienCoin = artifacts.require('./SapienCoin.sol');
 
 module.exports = function(deployer, network, accounts) {
 
@@ -8,6 +9,10 @@ module.exports = function(deployer, network, accounts) {
     const wallet = web3.eth.accounts[0];
     const cap = new web3.BigNumber(83000000000000000000000); //83k ether hardcap
     deployer.deploy(SapienCrowdsale, startBlock, endBlock, rate, wallet, cap);
+
+    //only deploy SapienCoin if we're running tests or are on the development network
+    if(network === 'development')
+        deployer.deploy(SapienCoin);
 
 };
 
