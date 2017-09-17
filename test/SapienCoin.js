@@ -1,6 +1,6 @@
 var SapienCoin = artifacts.require('./SapienCoin.sol');
 
-contract('SapienCrowdSale', function(accounts) {
+contract('SapienCoin', function(accounts) {
 
     it("SapienCoin deployed with SPN symbol", async function() {
         let SPN = await SapienCoin.deployed();
