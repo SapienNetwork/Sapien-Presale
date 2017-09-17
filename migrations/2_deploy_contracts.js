@@ -10,6 +10,6 @@ module.exports = function(deployer, network, accounts) {
 
     deployer.deploy(SapienCoin).then(function() {
         console.log('SPN Address: ' + SapienCoin.address);
-        deployer.deploy(SapienCrowdsale, startBlock, endBlock, rate, SapienCoin.address);
+        deployer.deploy(SapienCrowdsale, startBlock, endBlock, rate, wallet);
    });
 };
