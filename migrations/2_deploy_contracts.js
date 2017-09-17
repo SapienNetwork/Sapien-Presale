@@ -1,5 +1,5 @@
-var SapienCrowdsale = artifacts.require("./SapienCrowdSale.sol");
-var SapienCoin = artifacts.require('./SapienCoin.sol');
+let SapienCrowdsale = artifacts.require("./SapienCrowdSale.sol");
+let SapienCoin = artifacts.require('./SapienCoin.sol');
 
 module.exports = function(deployer, network, accounts) {
 
@@ -7,9 +7,8 @@ module.exports = function(deployer, network, accounts) {
     const endBlock = startBlock + 300;
     const rate = new web3.BigNumber(1000);
     const wallet = web3.eth.accounts[0];
+    const cap = new web3.BigNumber(83000000000000000000000); //83k ether hardcap
+    deployer.deploy(SapienCrowdsale, startBlock, endBlock, rate, wallet, cap);
 
-    deployer.deploy(SapienCoin).then(function() {
-        console.log('SPN Address: ' + SapienCoin.address);
-        deployer.deploy(SapienCrowdsale, startBlock, endBlock, rate, wallet);
-   });
 };
+
