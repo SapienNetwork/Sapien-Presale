@@ -1,19 +1,22 @@
 # sapienico
 
-## Setup
-`npm install`
+## Information
+
+This repository contains smart contracts that Sapien.me will use for various purposes.
 
 ## Setup
-`npm run testrpc`
-
-`npm run eth_install`
-
-`npm run deploy`
-
+```bash
+npm install
+```
+## Setup
+```bash
+npm run testrpc
+npm run eth_install
+npm run deploy
+```
 
 ## Testing
 
 ```bash
-# Run after deploying the contract
 npm run test
 ```
