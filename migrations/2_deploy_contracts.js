@@ -10,5 +10,9 @@ module.exports = function(deployer, network, accounts) {
     const cap = new web3.BigNumber(83000000000000000000000); //83k ether hardcap
     deployer.deploy(SapienCrowdsale, startBlock, endBlock, rate, wallet, cap);
 
+    //only deploy SapienCoin if we're running tests or are on the development network
+    if(network === 'development')
+        deployer.deploy(SapienCoin);
+
 };
 

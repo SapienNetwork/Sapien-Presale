@@ -6,7 +6,7 @@
     "deploy": "./node_modules/truffle/build/cli.bundled.js deploy --reset",
     "eth_install": "./node_modules/truffle/build/cli.bundled.js install",
     "test": "./node_modules/truffle/build/cli.bundled.js test",
-    "testrpc": "./node_modules/ethereumjs-testrpc/build/cli.node.js --account=0xdccc47a4e0d8ae745ab8309d1021b0a81fff19fda7d073123cf262c010d5d0d0,100000000000000000000000000000"
+    "testrpc": "./node_modules/ethereumjs-testrpc/build/cli.node.js --account=0xdccc47a4e0d8ae745ab8309d1021b0a81fff19fda7d073123cf262c010d5d0d0,100000000000000000000000000000 --account=0x67bd8f7a6a37297a7384f03e675238d09d86cf9730ae157b04fbcb5c71b9d18d,10000000000000000000"
   },
   "dependencies": {},
   "devDependencies": {
