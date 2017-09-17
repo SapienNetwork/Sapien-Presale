@@ -1,5 +1,4 @@
 let SapienCrowdsale = artifacts.require("./SapienCrowdSale.sol");
-let SapienCoin = artifacts.require('./SapienCoin.sol');
 
 module.exports = function(deployer, network, accounts) {
 

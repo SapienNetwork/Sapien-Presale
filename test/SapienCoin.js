@@ -1,4 +1,4 @@
-var SapienCoin = artifacts.require('./SapienCoin.sol');
+let SapienCoin = artifacts.require('./SapienCoin.sol');
 
 contract('SapienCoin', function(accounts) {
 
