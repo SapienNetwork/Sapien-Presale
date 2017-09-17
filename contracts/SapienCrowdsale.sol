@@ -1,6 +1,5 @@
 pragma solidity ^0.4.13;
 
-import "zeppelin/contracts/crowdsale/CappedCrowdsale.sol";
 import "./SapienCoin.sol";
 import "zeppelin/contracts/math/SafeMath.sol";
 import "./Owned.sol";
