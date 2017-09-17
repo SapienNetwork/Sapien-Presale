@@ -13,4 +13,7 @@
 
 ## Testing
 
-`npm run test`
+```bash
+# Run after deploying the contract
+npm run test
+```
