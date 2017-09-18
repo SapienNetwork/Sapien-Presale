@@ -51,7 +51,7 @@ contract('SapienCrowdSale', function(accounts) {
         let crowdsale = await SapienCrowdSale.new({ from: accounts[0] });
         await crowdsale.initalize(web3.eth.blockNumber + 1, endBlock, rate, wallet, cap, SPN.address, {from: accounts[0], gas: 900000});
         await updateController(SPN, crowdsale.address);
-        await crowdsale.pauseContribution({ from: accounts[0] });
+        await crowdsale.pauseContribution();
         await assertFail(async function() {
             await crowdsale.buyTokens(accounts[1], { value: web3.toWei(1), from: accounts[1] });
         });
