@@ -18,8 +18,7 @@ contract('SapienCrowdSale', function(accounts) {
         SPN = await SapienCoin.new();
         wallet = await MultisigWallet.new([accounts[0], accounts[1], accounts[2]]);
     });
-
-
+    
     it("Deploys contract with correct hardcap", async function() {
         let crowdsale = await SapienCrowdSale.new({ from: accounts[0] });
         await crowdsale.initalize(startBlock, endBlock, rate, wallet.address, cap, SPN.address, {from: accounts[0], gas: 900000});
@@ -90,7 +89,5 @@ contract('SapienCrowdSale', function(accounts) {
         assert.equal(walletBalanceAfter, walletBalanceBefore + contributingAmount, "Balance contributed is not equal to wallet balance");
 
     });
-
-
 
 });
