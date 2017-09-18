@@ -24,7 +24,7 @@ contract('SapienCrowdSale', function(accounts) {
         let crowdsale = await SapienCrowdSale.new({ from: accounts[0] });
         await crowdsale.initalize(startBlock, endBlock, rate, wallet.address, cap, SPN.address, {from: accounts[0], gas: 900000});
         await updateController(SPN, crowdsale.address);
-        let hardcap = await crowdsale.cap.call();
+        let hardcap = await crowdsale.weiCap.call();
         assert.equal(hardcap.toString(), cap.toString(), "Deployed hardcap is not equal to hardcap");
     });
 
@@ -65,15 +65,27 @@ contract('SapienCrowdSale', function(accounts) {
         await crowdsale.buyTokens(accounts[1], { value: web3.toWei(1), from: accounts[1] });
     });
 
+    it("Checks crowdsale is over once hardcap is reached", async function() {
+        let crowdsale = await SapienCrowdSale.new({ from: accounts[0] });
+        await crowdsale.initalize(web3.eth.blockNumber + 1, endBlock, rate, wallet.address, cap, SPN.address, {from: accounts[0], gas: 900000});
+        await updateController(SPN, crowdsale.address);
+        await crowdsale.buyTokens(accounts[2], { value: cap, from: accounts[2] });
+
+        await assertFail(async function() {
+            await crowdsale.buyTokens(accounts[1], { value: web3.toWei(1), from: accounts[1] });
+        });
+
+    });
+
     it("Checks that contributed ethereum is forwarded to wallet", async function() {
         let crowdsale = await SapienCrowdSale.new({ from: accounts[0] });
         await crowdsale.initalize(web3.eth.blockNumber + 1, endBlock, rate, wallet.address, cap, SPN.address, {from: accounts[0], gas: 900000});
         await updateController(SPN, crowdsale.address);
 
-        let contributingAmount = web3.toWei(1000, 'ether');
-        let walletBalanceBefore = await web3.eth.getBalance(wallet.address);
+        let contributingAmount = parseInt(web3.toWei(1000, 'ether'));
+        let walletBalanceBefore = await web3.eth.getBalance(wallet.address).toNumber();
         await crowdsale.buyTokens(accounts[2], { value: contributingAmount, from: accounts[2] });
-        let walletBalanceAfter = await web3.eth.getBalance(wallet.address);
+        let walletBalanceAfter = await web3.eth.getBalance(wallet.address).toNumber();
 
         assert.equal(walletBalanceAfter, walletBalanceBefore + contributingAmount, "Balance contributed is not equal to wallet balance");
 
