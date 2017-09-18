@@ -22,4 +22,3 @@ module.exports = async function(deployer, network, accounts) {
         .initalize(startBlock, endBlock, rate, MultisigWallet.address, cap, SapienCoin.address, {from: accounts[0], gas: 900000});
 
 };
-

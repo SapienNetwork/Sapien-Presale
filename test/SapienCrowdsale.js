@@ -52,7 +52,7 @@ contract('SapienCrowdSale', function(accounts) {
         let crowdsale = await SapienCrowdSale.new({ from: accounts[0] });
         await crowdsale.initalize(web3.eth.blockNumber + 1, endBlock, rate, wallet.address, cap, SPN.address, {from: accounts[0], gas: 900000});
         await updateController(SPN, crowdsale.address);
-        await crowdsale.pauseContribution({ from: accounts[0] });
+        await crowdsale.pauseContribution();
         await assertFail(async function() {
             await crowdsale.buyTokens(accounts[1], { value: web3.toWei(1), from: accounts[1] });
         });
@@ -62,14 +62,21 @@ contract('SapienCrowdSale', function(accounts) {
         let crowdsale = await SapienCrowdSale.new({ from: accounts[0] });
         await crowdsale.initalize(web3.eth.blockNumber + 1, endBlock, rate, wallet.address, cap, SPN.address, {from: accounts[0], gas: 900000});
         await updateController(SPN, crowdsale.address);
-        await crowdsale.buyTokens(accounts[1], { value: 1, from: accounts[1] });
+        await crowdsale.buyTokens(accounts[1], { value: web3.toWei(1), from: accounts[1] });
     });
 
-    it("Checks that a contributed ethereum is forwarded to wallet", async function() {
+    it("Checks that contributed ethereum is forwarded to wallet", async function() {
         let crowdsale = await SapienCrowdSale.new({ from: accounts[0] });
         await crowdsale.initalize(web3.eth.blockNumber + 1, endBlock, rate, wallet.address, cap, SPN.address, {from: accounts[0], gas: 900000});
         await updateController(SPN, crowdsale.address);
-        await crowdsale.buyTokens(accounts[1], { value: 1, from: accounts[1] });
+
+        let contributingAmount = web3.toWei(1000, 'ether');
+        let walletBalanceBefore = await web3.eth.getBalance(wallet.address);
+        await crowdsale.buyTokens(accounts[2], { value: contributingAmount, from: accounts[2] });
+        let walletBalanceAfter = await web3.eth.getBalance(wallet.address);
+
+        assert.equal(walletBalanceAfter, walletBalanceBefore + contributingAmount, "Balance contributed is not equal to wallet balance");
+
     });
 
 
