@@ -23,7 +23,7 @@ contract SapienCrowdSale is Owned {
     uint256 public weiRaised;
 
     // hard cap, campaign ends after reached
-    uint256 public cap;
+    uint256 public weiCap;
 
     //SPN token
     SapienCoin public token;
@@ -55,7 +55,7 @@ contract SapienCrowdSale is Owned {
         endBlock = _endBlock;
         rate = _rate;
         wallet = _wallet;
-        cap = _cap;
+        weiCap = _cap;
         token = SapienCoin(_token);
 
     }
@@ -113,12 +113,14 @@ contract SapienCrowdSale is Owned {
         uint256 current = block.number;
         bool withinPeriod = current >= startBlock && current <= endBlock;
         bool nonZeroPurchase = msg.value != 0;
-        return withinPeriod && nonZeroPurchase && !paused;
+        bool withinCap = weiRaised.add(msg.value) <= weiCap;
+        return withinCap && withinPeriod && nonZeroPurchase && !paused;
     }
 
     // @return true if crowdsale event has ended
     function hasEnded() public constant returns (bool) {
-        return block.number > endBlock;
+        bool capReached = weiRaised >= weiCap;
+        return capReached || block.number > endBlock;
     }
 
 }
