@@ -19,8 +19,4 @@ module.exports = async function(deployer, network, accounts) {
     //initalize crowdsale
     await web3.eth.contract(SapienCrowdsale.abi).at(SapienCrowdsale.address)
         .initalize(startBlock, endBlock, rate, wallet, cap, SapienCoin.address, {from: accounts[0], gas: 900000});
-
-
-
 };
-
