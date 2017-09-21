@@ -66,7 +66,7 @@ contract('SapienCrowdSale', function(accounts) {
 
     it("Checks that gas prices over 50Gwei are rejected", async function() {
         let crowdsale = await SapienCrowdSale.new({ from: accounts[0] });
-        await crowdsale.initalize(web3.eth.blockNumber + 1, endBlock, rate, wallet, cap, SPN.address, {from: accounts[0], gas: 900000});
+        await crowdsale.initalize(web3.eth.blockNumber + 1, endBlock, rate, wallet.address, cap, SPN.address, {from: accounts[0], gas: 900000});
         await updateController(SPN, crowdsale.address);
         await crowdsale.resumeContribution({ from: accounts[0] }); //waste one block
         await assertFail(async function() {
