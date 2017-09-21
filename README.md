@@ -1,5 +1,5 @@
 # sapienico
-
+[![Build Status](https://travis-ci.com/eshohet/sapien-contracts.svg?token=e4rLA2hbyesf7xbp729b&branch=master)](https://travis-ci.com/eshohet/sapien-contracts)
 ## Information
 
 This repository contains smart contracts that Sapien.me will use for various purposes.
