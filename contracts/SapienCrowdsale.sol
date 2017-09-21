@@ -10,6 +10,9 @@ contract SapienCrowdSale is Owned {
 
     using SafeMath for uint256;
 
+    // maximum gas price for contribution transactions
+    uint256 public constant MAX_GAS_PRICE = 50000000000;
+
     // start and end block where investments are allowed (both inclusive)
     uint256 public startBlock;
     uint256 public endBlock;
@@ -36,6 +39,12 @@ contract SapienCrowdSale is Owned {
 
     modifier notPaused() {
         require(!paused);
+        _;
+    }
+
+    // verifies that gas price is below max gas price (prevents "cutting in line")
+    modifier validGasPrice() {
+        require(tx.gasprice <= MAX_GAS_PRICE);
         _;
     }
 
@@ -86,7 +95,7 @@ contract SapienCrowdSale is Owned {
     }
 
     // low level token purchase function
-    function buyTokens(address beneficiary) payable {
+    function buyTokens(address beneficiary) payable validGasPrice {
         require(beneficiary != 0x0);
         require(validPurchase());
 
