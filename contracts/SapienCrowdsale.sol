@@ -1,9 +1,8 @@
 pragma solidity ^0.4.13;
 
 import "./SapienCoin.sol";
-import "zeppelin/contracts/math/SafeMath.sol";
+import "node_modules/zeppelin-solidity/contracts/math/SafeMath.sol";
 import "./Owned.sol";
-
 
 contract SapienCrowdSale is Owned {
 

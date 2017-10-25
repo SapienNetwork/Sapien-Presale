@@ -52,7 +52,7 @@ contract MultisigWallet {
      *
      * @param allowedSigners An array of signers on the wallet
      */
-    function WalletSimple(address[] allowedSigners) {
+    function MultisigWallet(address[] allowedSigners) {
         require(allowedSigners.length == 3);
         signers = allowedSigners;
     }
@@ -80,6 +80,7 @@ contract MultisigWallet {
      * @param signature the result of eth.sign on the operationHash sha3(toAddress, value, data, expireTime, sequenceId)
      */
     function sendMultiSig(address toAddress, uint value, bytes data, uint expireTime, uint sequenceId, bytes signature) onlysigner {
+        
         // Verify the other signer
         var operationHash = sha3("ETHER", toAddress, value, data, expireTime, sequenceId);
 
@@ -88,6 +89,7 @@ contract MultisigWallet {
         // Success, send the transaction
         require(toAddress.call.value(value)(data));
         Transacted(msg.sender, otherSigner, operationHash, toAddress, value, data);
+        
     }
 
     /**

@@ -4,8 +4,8 @@ module.exports = {
       host: "localhost",
       port: 8545,
       network_id: "*",
-      from: "0xB24e066a214736aD653D8AA4a310abEBF7FB23A7",
-      gasPrice: "1000000000" //1 Gwei
+      from: "0x2a06196061937958d3b772bff4afe87421857125",
+     // gasPrice: "1000000000"
     }
   }
 };

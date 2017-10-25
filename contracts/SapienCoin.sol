@@ -1,7 +1,7 @@
 pragma solidity ^0.4.13;
 
-import "./Controlled.sol";
-import "zeppelin/contracts/token/StandardToken.sol";
+import './Controlled.sol';
+import 'node_modules/zeppelin-solidity/contracts/token/StandardToken.sol';
 
 contract SapienCoin is Controlled, StandardToken {
 
