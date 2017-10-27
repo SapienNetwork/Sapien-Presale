@@ -99,8 +99,32 @@ contract SapienCrowdSale is Owned {
 
         uint256 weiAmount = msg.value;
 
+        uint256 bonusRate = rate;
+
+        if (weiAmount > 33 * 10**18 && weiAmount < 166 * 10**18) {
+
+            bonusRate = 2575;
+
+        } else if (weiAmount > 166 * 10**18 && weiAmount < 333 * 10**18) {
+
+            bonusRate = 2675;
+
+        } else if (weiAmount > 333 * 10**18 && weiAmount < 833 * 10**18) {
+
+            bonusRate = 2875;
+
+        } else if (weiAmount > 833 * 10**18 && weiAmount < 1666 * 10**18) {
+
+            bonusRate = 3000;
+
+        } else if (weiAmount > 1666 * 10**18) {
+
+            bonusRate = 3750;
+
+        }
+
         // calculate token amount to be created
-        uint256 tokens = weiAmount.mul(rate);
+        uint256 tokens = weiAmount.mul(bonusRate);
 
         // update state
         weiRaised = weiRaised.add(weiAmount);
@@ -109,6 +133,7 @@ contract SapienCrowdSale is Owned {
         TokenPurchase(msg.sender, beneficiary, weiAmount, tokens);
 
         forwardFunds();
+        
     }
 
     // send ether to the fund collection wallet
