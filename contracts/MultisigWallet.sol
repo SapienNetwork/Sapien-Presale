@@ -82,7 +82,7 @@ contract MultisigWallet {
     function sendMultiSig(address toAddress, uint value, bytes data, uint expireTime, uint sequenceId, bytes signature) onlysigner {
         
         // Verify the other signer
-        var operationHash = sha3("ETHER", toAddress, value, data, expireTime, sequenceId);
+        var operationHash = keccak256("ETHER", toAddress, value, data, expireTime, sequenceId);
 
         var otherSigner = verifyMultiSig(toAddress, operationHash, signature, expireTime, sequenceId);
 

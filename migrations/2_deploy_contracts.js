@@ -7,7 +7,7 @@ module.exports = async function(deployer, network, accounts) {
     const startBlock = web3.eth.blockNumber + 300;
     const endBlock = startBlock + 300;
     const rate = new web3.BigNumber(1000);
-    const cap = new web3.BigNumber(73000000000000000000000); //83k ether hardcap
+    const cap = new web3.BigNumber(73000000000000000000000); //73k ether hardcap
 
     deployer.deploy(SapienCoin, {from: accounts[0]});
     deployer.deploy(MultisigWallet, [accounts[0], accounts[1], accounts[2]], {from: accounts[0]});

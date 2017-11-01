@@ -9,7 +9,7 @@ contract('SapienCrowdSale', function(accounts) {
 
     const startBlock = web3.eth.blockNumber + 300;
     const endBlock = startBlock + 300;
-    const rate = new web3.BigNumber(1000);
+    const rate = new web3.BigNumber(2500);
     const cap = new web3.BigNumber(73000000000000000000000); //83k ether hardcap
 
     let SPN, wallet;
@@ -62,6 +62,40 @@ contract('SapienCrowdSale', function(accounts) {
         await crowdsale.initalize(web3.eth.blockNumber + 1, endBlock, rate, wallet.address, cap, SPN.address, {from: accounts[0], gas: 900000});
         await updateController(SPN, crowdsale.address);
         await crowdsale.buyTokens(accounts[1], { value: web3.toWei(1), from: accounts[1] });
+    });
+
+    it("Checks if we computed the bonus correctly", async function() {
+
+        let bonusRate = rate;
+
+        let weiAmount = 1000 * 10**18;
+
+        if (weiAmount >= 33 * 10**18 && weiAmount < 166 * 10**18) {
+            
+                bonusRate = 2575;
+            
+        } else if (weiAmount >= 166 * 10**18 && weiAmount < 333 * 10**18) {
+            
+                bonusRate = 2675;
+            
+        } else if (weiAmount >= 333 * 10**18 && weiAmount < 833 * 10**18) {
+            
+                bonusRate = 2875;
+            
+        } else if (weiAmount >= 833 * 10**18 && weiAmount < 1666 * 10**18) {
+            
+                bonusRate = 3000;
+            
+        } else if (weiAmount >= 1666 * 10**18) {
+            
+                bonusRate = 3750;
+            
+        }
+
+        let tokens = weiAmount * bonusRate;
+
+        assert.equal(tokens, 3000 * 1000 * 10**18);
+
     });
 
     it("Checks that gas prices over 50Gwei are rejected", async function() {

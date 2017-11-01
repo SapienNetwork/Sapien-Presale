@@ -97,40 +97,41 @@ contract SapienCrowdSale is Owned {
         require(beneficiary != 0x0);
         require(validPurchase());
 
-        uint256 weiAmount = msg.value;
-
         uint256 bonusRate = rate;
 
-        if (weiAmount > 33 * 10**18 && weiAmount < 166 * 10**18) {
+        if (msg.value >= 33 * 10**18 && msg.value < 166 * 10**18) {
 
             bonusRate = 2575;
 
-        } else if (weiAmount > 166 * 10**18 && weiAmount < 333 * 10**18) {
+        } else if (msg.value >= 166 * 10**18 && msg.value < 333 * 10**18) {
 
             bonusRate = 2675;
 
-        } else if (weiAmount > 333 * 10**18 && weiAmount < 833 * 10**18) {
+        } else if (msg.value >= 333 * 10**18 && msg.value < 833 * 10**18) {
 
             bonusRate = 2875;
 
-        } else if (weiAmount > 833 * 10**18 && weiAmount < 1666 * 10**18) {
+        } else if (msg.value >= 833 * 10**18 && msg.value < 1666 * 10**18) {
 
             bonusRate = 3000;
 
-        } else if (weiAmount > 1666 * 10**18) {
+        } else if (msg.value >= 1666 * 10**18) {
 
             bonusRate = 3750;
 
         }
 
         // calculate token amount to be created
-        uint256 tokens = weiAmount.mul(bonusRate);
+        uint256 tokens = bonusRate.mul(msg.value);
 
         // update state
-        weiRaised = weiRaised.add(weiAmount);
+        weiRaised = weiRaised.add(msg.value);
 
         token.mint(beneficiary, tokens);
-        TokenPurchase(msg.sender, beneficiary, weiAmount, tokens);
+
+        TokenPurchase(msg.sender, beneficiary, msg.value, tokens);
+
+        tokens = 0;
 
         forwardFunds();
         
@@ -138,7 +139,9 @@ contract SapienCrowdSale is Owned {
 
     // send ether to the fund collection wallet
     function forwardFunds() internal {
+        
         wallet.transfer(msg.value);
+
     }
 
     // @return true if the transaction can buy tokens
