@@ -146,6 +146,7 @@ contract SapienCrowdSale is Owned {
     }
 
     // send ether to the fund collection wallet
+
     function safeWithdrawal() internal afterDeadline onlyOwner {
         
         uint256 funds = weiRaised;

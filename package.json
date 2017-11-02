@@ -21,6 +21,6 @@
   },
   "devDependencies": {
     "ethereumjs-testrpc": "^4.0.1",
-    "truffle": "^3.4.7"
+    "truffle": "^3.4.11"
   }
 }
