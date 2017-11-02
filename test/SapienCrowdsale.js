@@ -10,7 +10,7 @@ contract('SapienCrowdSale', function(accounts) {
     const startBlock = web3.eth.blockNumber + 300;
     const endBlock = startBlock + 300;
     const rate = new web3.BigNumber(2500);
-    const cap = new web3.BigNumber(73000000000000000000000); //83k ether hardcap
+    const cap = new web3.BigNumber(73000000000000000000000); //73k ether hardcap
 
     let SPN, wallet;
 
@@ -21,7 +21,7 @@ contract('SapienCrowdSale', function(accounts) {
     
     it("Deploys contract with correct hardcap", async function() {
         let crowdsale = await SapienCrowdSale.new({ from: accounts[0] });
-        await crowdsale.initalize(startBlock, endBlock, rate, wallet.address, cap, SPN.address, {from: accounts[0], gas: 900000});
+        await crowdsale.initialize(startBlock, endBlock, rate, wallet.address, cap, SPN.address, {from: accounts[0], gas: 900000});
         await updateController(SPN, crowdsale.address);
         let hardcap = await crowdsale.weiCap.call();
         assert.equal(hardcap.toString(), cap.toString(), "Deployed hardcap is not equal to hardcap");
@@ -29,7 +29,7 @@ contract('SapienCrowdSale', function(accounts) {
 
     it("Checks that nobody can buy before the crowdsale begins", async function() {
         let crowdsale = await SapienCrowdSale.new({ from: accounts[0] });
-        await crowdsale.initalize(startBlock, endBlock, rate, wallet.address, cap, SPN.address, {from: accounts[0], gas: 900000});
+        await crowdsale.initialize(startBlock, endBlock, rate, wallet.address, cap, SPN.address, {from: accounts[0], gas: 900000});
         await updateController(SPN, crowdsale.address);
         await assertFail(async function() {
             await crowdsale.buyTokens(accounts[1], { value: web3.toWei(1), from: accounts[1] });
@@ -38,7 +38,7 @@ contract('SapienCrowdSale', function(accounts) {
 
     it("Checks that only owner can pause campaign", async function() {
         let crowdsale = await SapienCrowdSale.new({ from: accounts[0] });
-        await crowdsale.initalize(web3.eth.blockNumber + 1, endBlock, rate, wallet.address, cap, SPN.address, {from: accounts[0], gas: 900000});
+        await crowdsale.initialize(web3.eth.blockNumber + 1, endBlock, rate, wallet.address, cap, SPN.address, {from: accounts[0], gas: 900000});
         await updateController(SPN, crowdsale.address);
         await assertFail(async function() {
             await crowdsale.pauseContribution({ from: accounts[1] });
@@ -49,7 +49,7 @@ contract('SapienCrowdSale', function(accounts) {
 
     it("Checks that nobody can buy if the crowdsale is paused", async function() {
         let crowdsale = await SapienCrowdSale.new({ from: accounts[0] });
-        await crowdsale.initalize(web3.eth.blockNumber + 1, endBlock, rate, wallet.address, cap, SPN.address, {from: accounts[0], gas: 900000});
+        await crowdsale.initialize(web3.eth.blockNumber + 1, endBlock, rate, wallet.address, cap, SPN.address, {from: accounts[0], gas: 900000});
         await updateController(SPN, crowdsale.address);
         await crowdsale.pauseContribution();
         await assertFail(async function() {
@@ -59,7 +59,7 @@ contract('SapienCrowdSale', function(accounts) {
 
     it("Checks that anyone can buy tokens after crowdsale has started", async function() {
         let crowdsale = await SapienCrowdSale.new({ from: accounts[0] });
-        await crowdsale.initalize(web3.eth.blockNumber + 1, endBlock, rate, wallet.address, cap, SPN.address, {from: accounts[0], gas: 900000});
+        await crowdsale.initialize(web3.eth.blockNumber + 1, endBlock, rate, wallet.address, cap, SPN.address, {from: accounts[0], gas: 900000});
         await updateController(SPN, crowdsale.address);
         await crowdsale.buyTokens(accounts[1], { value: web3.toWei(1), from: accounts[1] });
     });
@@ -100,7 +100,7 @@ contract('SapienCrowdSale', function(accounts) {
 
     it("Checks that gas prices over 50Gwei are rejected", async function() {
         let crowdsale = await SapienCrowdSale.new({ from: accounts[0] });
-        await crowdsale.initalize(web3.eth.blockNumber + 1, endBlock, rate, wallet.address, cap, SPN.address, {from: accounts[0], gas: 900000});
+        await crowdsale.initialize(web3.eth.blockNumber + 1, endBlock, rate, wallet.address, cap, SPN.address, {from: accounts[0], gas: 900000});
         await updateController(SPN, crowdsale.address);
         await crowdsale.resumeContribution({ from: accounts[0] }); //waste one block
         await assertFail(async function() {
@@ -111,7 +111,7 @@ contract('SapienCrowdSale', function(accounts) {
 
     it("Checks crowdsale is over once hardcap is reached", async function() {
         let crowdsale = await SapienCrowdSale.new({ from: accounts[0] });
-        await crowdsale.initalize(web3.eth.blockNumber + 1, endBlock, rate, wallet.address, cap, SPN.address, {from: accounts[0], gas: 900000});
+        await crowdsale.initialize(web3.eth.blockNumber + 1, endBlock, rate, wallet.address, cap, SPN.address, {from: accounts[0], gas: 900000});
         await updateController(SPN, crowdsale.address);
         await crowdsale.buyTokens(accounts[2], { value: cap, from: accounts[2] });
 
@@ -123,12 +123,13 @@ contract('SapienCrowdSale', function(accounts) {
 
     it("Checks that contributed ethereum is forwarded to wallet", async function() {
         let crowdsale = await SapienCrowdSale.new({ from: accounts[0] });
-        await crowdsale.initalize(web3.eth.blockNumber + 1, endBlock, rate, wallet.address, cap, SPN.address, {from: accounts[0], gas: 900000});
+        await crowdsale.initialize(web3.eth.blockNumber + 1, endBlock, rate, wallet.address, cap, SPN.address, {from: accounts[0], gas: 900000});
         await updateController(SPN, crowdsale.address);
 
         let contributingAmount = parseInt(web3.toWei(1000, 'ether'));
         let walletBalanceBefore = await web3.eth.getBalance(wallet.address).toNumber();
         await crowdsale.buyTokens(accounts[2], { value: contributingAmount, from: accounts[2] });
+        await crowdsale.safeWithdrawal({ from: accounts[0] });
         let walletBalanceAfter = await web3.eth.getBalance(wallet.address).toNumber();
 
         assert.equal(walletBalanceAfter, walletBalanceBefore + contributingAmount, "Balance contributed is not equal to wallet balance");

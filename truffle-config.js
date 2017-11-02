@@ -4,7 +4,7 @@ module.exports = {
       host: "localhost",
       port: 8545,
       network_id: "*",
-      from: "0x6350bcac8720b7bd3ab9bd9d00fee1551762634c",
+      from: "0x730b3b721b71b99f67fab4cf5da1e48c0ff1c385",
       gasPrice: "100000000"
     }
 

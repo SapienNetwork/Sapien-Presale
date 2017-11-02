@@ -34,6 +34,12 @@ contract SapienCrowdSale is Owned {
     bool public paused;
 
 
+    modifier afterDeadline() {
+
+        require(block.number >= endBlock);
+         _;
+
+    }
 
     modifier notPaused() {
         require(!paused);
@@ -50,7 +56,7 @@ contract SapienCrowdSale is Owned {
         paused = false;
     }
 
-    function initalize(uint256 _startBlock, uint256 _endBlock, uint256 _rate, address _wallet, uint256 _cap, address _token) onlyOwner {
+    function initialize(uint256 _startBlock, uint256 _endBlock, uint256 _rate, address _wallet, uint256 _cap, address _token) onlyOwner {
 
         require(_startBlock >= block.number);
         require(_endBlock >= _startBlock);
@@ -87,13 +93,15 @@ contract SapienCrowdSale is Owned {
      */
     event TokenPurchase(address indexed purchaser, address indexed beneficiary, uint256 value, uint256 amount);
 
+    event Transferred(uint256 amount);
+
     // fallback function can be used to buy tokens
     function () payable {
         buyTokens(msg.sender);
     }
 
-    // low level token purchase function
     function buyTokens(address beneficiary) payable validGasPrice {
+        
         require(beneficiary != 0x0);
         require(validPurchase());
 
@@ -124,6 +132,8 @@ contract SapienCrowdSale is Owned {
         // calculate token amount to be created
         uint256 tokens = bonusRate.mul(msg.value);
 
+        bonusRate = 0;
+
         // update state
         weiRaised = weiRaised.add(msg.value);
 
@@ -132,17 +142,34 @@ contract SapienCrowdSale is Owned {
         TokenPurchase(msg.sender, beneficiary, msg.value, tokens);
 
         tokens = 0;
-
-        forwardFunds();
         
     }
 
     // send ether to the fund collection wallet
-    function forwardFunds() internal {
+    function safeWithdrawal() internal afterDeadline onlyOwner {
         
-        wallet.transfer(msg.value);
+        uint256 funds = weiRaised;
+
+        weiRaised = 0;
+
+        if (funds > 0) {
+
+            if (wallet.send(funds)) {
+
+                Transferred(funds);
+
+            } else {
+
+                weiRaised = funds;
+
+                revert();
+
+            }
+
+        }
 
     }
+
 
     // @return true if the transaction can buy tokens
     function validPurchase() internal constant returns (bool) {
