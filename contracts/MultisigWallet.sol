@@ -1,4 +1,4 @@
-pragma solidity ^0.4.13;
+pragma solidity ^0.4.15;
 
 /**
  * Basic multi-signer wallet designed for use in a co-signing environment where 2 signatures are required to move funds.

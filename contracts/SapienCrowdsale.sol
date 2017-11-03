@@ -181,10 +181,4 @@ contract SapienCrowdSale is Owned {
         return withinCap && withinPeriod && nonZeroPurchase && !paused;
     }
 
-    // @return true if crowdsale event has ended
-    function hasEnded() public constant returns (bool) {
-        bool capReached = weiRaised >= weiCap;
-        return capReached || block.number > endBlock;
-    }
-
 }

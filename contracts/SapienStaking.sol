@@ -1,9 +1,9 @@
 pragma solidity ^0.4.15;
 
-import './Ownable.sol';
+import './Owned.sol';
 import 'node_modules/zeppelin-solidity/contracts/math/SafeMath.sol';
 
-contract SapienStaking is Ownable {
+contract SapienStaking is Owned {
 
     using SafeMath for uint256;
 
@@ -17,7 +17,7 @@ contract SapienStaking is Ownable {
     mapping (address => SPNUser) stakingBalances;
 
     event StakedFunds(address _from, uint256 amountSPN);
-    event NotEnoughFunds(bytes32 message);
+    event NotEnoughFunds(string message);
 
 
     function SapienStaking() {}
