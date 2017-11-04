@@ -1,4 +1,4 @@
-pragma solidity ^0.4.13;
+pragma solidity ^0.4.15;
 
 import "./SapienCoin.sol";
 import "node_modules/zeppelin-solidity/contracts/math/SafeMath.sol";
@@ -82,6 +82,12 @@ contract SapienCrowdSale is Owned {
     // Resumes the contribution
     function resumeContribution() onlyOwner {
         paused = false;
+    }
+
+    function switchSapienCoin(address _token) onlyOwner {
+
+        token = SapienCoin(_token);
+
     }
 
     /**
