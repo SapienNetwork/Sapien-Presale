@@ -1,28 +1,33 @@
-let SapienCoin = artifacts.require('./SapienCoin.sol');
+let TokenController = artifacts.require('./TokenController.sol');
+let Owned = artifacts.require('./Owned.sol');
+let SapienToken = artifacts.require('node_modules/zeppelin-solidity/contracts/token/SapienToken.sol');
 
-contract('SapienCoin', function(accounts) {
+contract('TokenController', function(accounts) {
 
-    it("SapienCoin deployed with SPN symbol", async function() {
-        let SPN = await SapienCoin.new();
+    it("SapienToken deployed with SPN symbol", async function() {
+        let SPN = await SapienToken.new(TokenController.address, Owned.address);
         let symbol = await SPN.symbol.call();
         assert.equal(symbol, 'SPN', 'Symbol name is not SPN');
     });
 
     it("Checks that SPN's Controller is transferable", async function() {
-        let SPN = await SapienCoin.new();
-        await SPN.changeController(accounts[1]);
+        let SPN = await SapienToken.new(TokenController.address, Owned.address);
+        await SPN.changeController(TokenController.address);
         const controller = await SPN.controller.call();
 
-        assert.equal(controller, accounts[1]);
+        assert.equal(controller, TokenController.address);
+
     });
 
     it("Checks that SPN is mintable", async function() {
-        let SPN = await SapienCoin.new();
+        let SPN = await SapienToken.new(TokenController.address, Owned.address);
         let totalSupply = await SPN.totalSupply.call();
         assert.equal(totalSupply, 0, "Initial total supply is not 0.");
         let toMint = 100;
 
-        await SPN.mint(accounts[1], toMint);
+        let controller = await TokenController.new(Owned.address);
+
+        await controller.mint(accounts[1], toMint);
 
         totalSupply = await SPN.totalSupply.call();
         assert.equal(totalSupply, toMint, `Total supply is not ${toMint}`);

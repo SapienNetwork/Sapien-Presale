@@ -1,11 +1,11 @@
-let SapienCrowdSale = artifacts.require('./SapienCrowdSale.sol');
+let SapienCrowdsale = artifacts.require('./SapienCrowdsale.sol');
 let SapienCoin = artifacts.require('./SapienCoin.sol');
 let MultisigWallet = artifacts.require('./MultisigWallet.sol');
 
 const assertFail = require("./helpers/assertFail");
 const updateController = require("./helpers/updateController");
 
-contract('SapienCrowdSale', function(accounts) {
+contract('SapienCrowdsale', function(accounts) {
 
     const startBlock = web3.eth.blockNumber + 300;
     const endBlock = startBlock + 300;
@@ -20,7 +20,7 @@ contract('SapienCrowdSale', function(accounts) {
     });
     
     it("Deploys contract with correct hardcap", async function() {
-        let crowdsale = await SapienCrowdSale.new({ from: accounts[0] });
+        let crowdsale = await SapienCrowdsale.new({ from: accounts[0] });
         await crowdsale.initialize(startBlock, endBlock, rate, wallet.address, cap, SPN.address, {from: accounts[0], gas: 900000});
         await updateController(SPN, crowdsale.address);
         let hardcap = await crowdsale.weiCap.call();
@@ -28,7 +28,7 @@ contract('SapienCrowdSale', function(accounts) {
     });
 
     it("Checks that nobody can buy before the crowdsale begins", async function() {
-        let crowdsale = await SapienCrowdSale.new({ from: accounts[0] });
+        let crowdsale = await SapienCrowdsale.new({ from: accounts[0] });
         await crowdsale.initialize(startBlock, endBlock, rate, wallet.address, cap, SPN.address, {from: accounts[0], gas: 900000});
         await updateController(SPN, crowdsale.address);
         await assertFail(async function() {
@@ -37,7 +37,7 @@ contract('SapienCrowdSale', function(accounts) {
     });
 
     it("Checks that only owner can pause campaign", async function() {
-        let crowdsale = await SapienCrowdSale.new({ from: accounts[0] });
+        let crowdsale = await SapienCrowdsale.new({ from: accounts[0] });
         await crowdsale.initialize(web3.eth.blockNumber + 1, endBlock, rate, wallet.address, cap, SPN.address, {from: accounts[0], gas: 900000});
         await updateController(SPN, crowdsale.address);
         await assertFail(async function() {
@@ -48,7 +48,7 @@ contract('SapienCrowdSale', function(accounts) {
     });
 
     it("Checks that nobody can buy if the crowdsale is paused", async function() {
-        let crowdsale = await SapienCrowdSale.new({ from: accounts[0] });
+        let crowdsale = await SapienCrowdsale.new({ from: accounts[0] });
         await crowdsale.initialize(web3.eth.blockNumber + 1, endBlock, rate, wallet.address, cap, SPN.address, {from: accounts[0], gas: 900000});
         await updateController(SPN, crowdsale.address);
         await crowdsale.pauseContribution();
@@ -58,7 +58,7 @@ contract('SapienCrowdSale', function(accounts) {
     });
 
     it("Checks that anyone can buy tokens after crowdsale has started", async function() {
-        let crowdsale = await SapienCrowdSale.new({ from: accounts[0] });
+        let crowdsale = await SapienCrowdsale.new({ from: accounts[0] });
         await crowdsale.initialize(web3.eth.blockNumber + 1, endBlock, rate, wallet.address, cap, SPN.address, {from: accounts[0], gas: 900000});
         await updateController(SPN, crowdsale.address);
         await crowdsale.buyTokens(accounts[1], { value: web3.toWei(1), from: accounts[1] });
@@ -99,7 +99,7 @@ contract('SapienCrowdSale', function(accounts) {
     });
 
     it("Checks that gas prices over 50Gwei are rejected", async function() {
-        let crowdsale = await SapienCrowdSale.new({ from: accounts[0] });
+        let crowdsale = await SapienCrowdsale.new({ from: accounts[0] });
         await crowdsale.initialize(web3.eth.blockNumber + 1, endBlock, rate, wallet.address, cap, SPN.address, {from: accounts[0], gas: 900000});
         await updateController(SPN, crowdsale.address);
         await crowdsale.resumeContribution({ from: accounts[0] }); //waste one block
@@ -110,7 +110,7 @@ contract('SapienCrowdSale', function(accounts) {
     });
 
     it("Checks crowdsale is over once hardcap is reached", async function() {
-        let crowdsale = await SapienCrowdSale.new({ from: accounts[0] });
+        let crowdsale = await SapienCrowdsale.new({ from: accounts[0] });
         await crowdsale.initialize(web3.eth.blockNumber + 1, endBlock, rate, wallet.address, cap, SPN.address, {from: accounts[0], gas: 900000});
         await updateController(SPN, crowdsale.address);
         await crowdsale.buyTokens(accounts[2], { value: cap, from: accounts[2] });
@@ -122,7 +122,7 @@ contract('SapienCrowdSale', function(accounts) {
     });
 
     it("Checks that contributed ethereum is forwarded to wallet", async function() {
-        let crowdsale = await SapienCrowdSale.new({ from: accounts[0] });
+        let crowdsale = await SapienCrowdsale.new({ from: accounts[0] });
         await crowdsale.initialize(web3.eth.blockNumber + 1, endBlock, rate, wallet.address, cap, SPN.address, {from: accounts[0], gas: 900000});
         await updateController(SPN, crowdsale.address);
 

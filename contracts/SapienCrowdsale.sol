@@ -1,10 +1,10 @@
 pragma solidity ^0.4.15;
 
-import "./SapienCoin.sol";
-import "node_modules/zeppelin-solidity/contracts/math/SafeMath.sol";
 import "./Owned.sol";
+import "./TokenController.sol";
+import "node_modules/zeppelin-solidity/contracts/math/SafeMath.sol";
 
-contract SapienCrowdSale is Owned {
+contract SapienCrowdsale {
 
     using SafeMath for uint256;
 
@@ -28,11 +28,12 @@ contract SapienCrowdSale is Owned {
     uint256 public weiCap;
 
     //SPN token
-    SapienCoin public token;
+    TokenController public token;
 
     //allows for owner to pause the campaign if needed
     bool public paused;
 
+    Owned private owned;
 
     modifier afterDeadline() {
 
@@ -52,8 +53,22 @@ contract SapienCrowdSale is Owned {
         _;
     }
 
-    function SapienCrowdSale() {
+    /// @dev `owner` is the only address that can call a function with this
+    /// modifier
+    modifier onlyOwner() {
+        require(msg.sender == owned.getOwner());
+        _;
+    }
+
+    function SapienCrowdsale(address _owned) {
         paused = false;
+        owned = Owned(_owned);
+    }
+
+     function changeOwned(address _owned) onlyOwner {
+
+        owned = Owned(_owned);
+
     }
 
     function initialize(uint256 _startBlock, uint256 _endBlock, uint256 _rate, address _wallet, uint256 _cap, address _token) onlyOwner {
@@ -70,7 +85,7 @@ contract SapienCrowdSale is Owned {
         rate = _rate;
         wallet = _wallet;
         weiCap = _cap;
-        token = SapienCoin(_token);
+        token = TokenController(_token);
 
     }
 
@@ -86,7 +101,7 @@ contract SapienCrowdSale is Owned {
 
     function switchSapienCoin(address _token) onlyOwner {
 
-        token = SapienCoin(_token);
+        token = TokenController(_token);
 
     }
 
