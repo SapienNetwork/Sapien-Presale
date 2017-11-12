@@ -1,5 +1,5 @@
-let TokenController = artifacts.require('./TokenController.sol');
-let Owned = artifacts.require('./Owned.sol');
+let TokenController = artifacts.require('contracts/TokenController.sol');
+let Owned = artifacts.require('contracts/Owned.sol');
 let SapienToken = artifacts.require('node_modules/zeppelin-solidity/contracts/token/SapienToken.sol');
 
 contract('TokenController', function(accounts) {

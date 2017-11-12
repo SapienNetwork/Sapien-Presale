@@ -9,10 +9,10 @@ const helpers = require('./helpers/walletHelper');
 // Used to build the solidity tightly packed buffer to sha3
 const util = require('ethereumjs-util');
 const crypto = require('crypto');
-const MultisigWallet = artifacts.require('./MultisigWallet.sol');
-const SapienCoin = artifacts.require('./SapienCoin.sol');
+const MultisigWallet = artifacts.require('contracts/MultisigWallet.sol');
 
 contract('MultisigWallet', function(accounts) {
+
   let wallet;
   let walletEvents;
   let watcher;

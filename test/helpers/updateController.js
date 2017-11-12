@@ -1,3 +1,3 @@
-module.exports = async function(SPN, controllerAddress) {
-    await SPN.changeController(controllerAddress);
+module.exports = async function(Controller, controllerAddress) {
+    await Controller.changeController(controllerAddress);
 };

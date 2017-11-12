@@ -99,7 +99,7 @@ contract SapienCrowdsale {
         paused = false;
     }
 
-    function switchSapienCoin(address _token) onlyOwner {
+    function switchSapienToken(address _token) onlyOwner {
 
         token = TokenController(_token);
 
