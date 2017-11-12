@@ -1,6 +1,6 @@
 pragma solidity ^0.4.15;
 
-import "./Owned.sol";
+import "contracts/Owned.sol";
 import "node_modules/zeppelin-solidity/contracts/token/SapienToken.sol";
 
 contract TokenController {

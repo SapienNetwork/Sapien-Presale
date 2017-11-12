@@ -1,7 +1,7 @@
 pragma solidity ^0.4.15;
 
-import "./Owned.sol";
-import "./TokenController.sol";
+import "contracts/Owned.sol";
+import "contracts/TokenController.sol";
 import "node_modules/zeppelin-solidity/contracts/math/SafeMath.sol";
 
 contract SapienCrowdsale {
