@@ -35,6 +35,15 @@ contract SapienCrowdsale {
 
     Owned private owned;
 
+    struct Investor {
+
+        uint256 amountOfWeiInvested;
+        uint256 calculatedTokens;
+
+    }
+
+    mapping(address => Investor) public investorWei;
+
     modifier afterDeadline() {
 
         require(block.number >= endBlock);
@@ -45,6 +54,13 @@ contract SapienCrowdsale {
     modifier notPaused() {
         require(!paused);
         _;
+    }
+
+    modifier refundCondition() {
+
+        require(block.number < endBlock);
+        _;
+
     }
 
     // verifies that gas price is below max gas price (prevents "cutting in line")
@@ -126,29 +142,7 @@ contract SapienCrowdsale {
         require(beneficiary != 0x0);
         require(validPurchase());
 
-        uint256 bonusRate = rate;
-
-        if (msg.value >= 33 * 10**18 && msg.value < 166 * 10**18) {
-
-            bonusRate = 2575;
-
-        } else if (msg.value >= 166 * 10**18 && msg.value < 333 * 10**18) {
-
-            bonusRate = 2675;
-
-        } else if (msg.value >= 333 * 10**18 && msg.value < 833 * 10**18) {
-
-            bonusRate = 2875;
-
-        } else if (msg.value >= 833 * 10**18 && msg.value < 1666 * 10**18) {
-
-            bonusRate = 3000;
-
-        } else if (msg.value >= 1666 * 10**18) {
-
-            bonusRate = 3750;
-
-        }
+        uint256 bonusRate = getBonusRate(msg.value);
 
         // calculate token amount to be created
         uint256 tokens = bonusRate.mul(msg.value);
@@ -158,12 +152,59 @@ contract SapienCrowdsale {
         // update state
         weiRaised = weiRaised.add(msg.value);
 
-        token.mint(beneficiary, tokens);
+        investorWei[msg.sender].amountOfWeiInvested = investorWei[msg.sender].amountOfWeiInvested.add(msg.value);
+
+        investorWei[msg.sender].calculatedTokens = investorWei[msg.sender].calculatedTokens.add(tokens);
 
         TokenPurchase(msg.sender, beneficiary, msg.value, tokens);
 
         tokens = 0;
         
+    }
+
+    function getBonusRate(uint256 weiAmount) internal returns (uint256) {
+
+        uint256 bonusRate = rate;
+
+        if (weiAmount >= 33 * 10**18 && weiAmount < 166 * 10**18) {
+
+            bonusRate = 2575;
+
+        } else if (weiAmount >= 166 * 10**18 && weiAmount < 333 * 10**18) {
+
+            bonusRate = 2675;
+
+        } else if (weiAmount >= 333 * 10**18 && weiAmount < 833 * 10**18) {
+
+            bonusRate = 2875;
+
+        } else if (weiAmount >= 833 * 10**18 && weiAmount < 1666 * 10**18) {
+
+            bonusRate = 3000;
+
+        } else if (weiAmount >= 1666 * 10**18) {
+
+            bonusRate = 3750;
+
+        }
+
+        return bonusRate;
+
+    }
+
+    function refundInvestment(uint256 weiAmount) public refundCondition {
+
+        require(investorWei[msg.sender].amountOfWeiInvested >= weiAmount);
+
+        investorWei[msg.sender].amountOfWeiInvested = investorWei[msg.sender].amountOfWeiInvested.sub(weiAmount);
+
+        investorWei[msg.sender].calculatedTokens = 
+            investorWei[msg.sender].calculatedTokens.sub(getBonusRate(weiAmount));
+
+        weiRaised = weiRaised.sub(weiAmount);
+
+        msg.sender.transfer(weiAmount);
+
     }
 
     // send ether to the fund collection wallet
@@ -192,6 +233,15 @@ contract SapienCrowdsale {
 
     }
 
+    function distributeTokens(address investor) internal onlyOwner afterDeadline {
+
+        require(investorWei[msg.sender].amountOfWeiInvested > 0);
+
+        investorWei[msg.sender].calculatedTokens = 0;
+
+        token.mint(investor, investorWei[msg.sender].calculatedTokens);
+
+    }
 
     // @return true if the transaction can buy tokens
     function validPurchase() internal constant returns (bool) {
@@ -200,6 +250,18 @@ contract SapienCrowdsale {
         bool nonZeroPurchase = msg.value != 0;
         bool withinCap = weiRaised.add(msg.value) <= weiCap;
         return withinCap && withinPeriod && nonZeroPurchase && !paused;
+    }
+
+    function terminateSale() onlyOwner {
+
+        uint256 funds = weiRaised;
+
+        weiRaised = 0;
+
+        wallet.transfer(funds);
+
+        suicide();
+
     }
 
 }

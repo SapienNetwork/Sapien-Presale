@@ -26,6 +26,12 @@ contract TokenController {
     
     }
 
+    function() payable {
+
+        revert();
+
+    }
+
     function changeBasicToken(address _sapien) onlyOwner {
 
         sapienToken = SapienToken(_sapien);
@@ -51,10 +57,18 @@ contract TokenController {
      * @return A boolean that indicates if the operation was successful.
      */
     function mint(address _to, uint256 _amount) onlyOwner returns (bool) {
-        sapienToken.increaseTotal(_amount);
+        sapienToken.increaseCirculation(_amount);
         sapienToken.addToBalance(_to, _amount);
         Mint(_to, _amount);
         return true;
+    }
+
+    function destroyController() {
+
+        require(msg.sender == owned.getOwner());
+
+        suicide(msg.sender);
+
     }
 
 }
