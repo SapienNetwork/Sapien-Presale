@@ -1,9 +1,9 @@
-pragma solidity ^0.4.15;
+pragma solidity ^0.4.18;
 
 import "contracts/Owned.sol";
-import "contracts/StringUtils.sol";
-import "node_modules/zeppelin-solidity/contracts/token/SapienToken.sol";
-import "node_modules/zeppelin-solidity/contracts/math/SafeMath.sol";
+import "contracts/libraries/StringUtils.sol";
+import "contracts/SapienToken.sol";
+import "contracts/libraries/SafeMath.sol";
 
 contract SapienStaking {
 
@@ -13,24 +13,32 @@ contract SapienStaking {
 
     address private sapienToken;
 
-    uint256 public forVote = 1;
-    uint256 public forComment = 5;
-    uint256 public forPosting = 10;
+    uint256 blockAttack = 0;
+    uint256 public timeUntilNoWithdrawalFees = 365 days;
 
-    mapping (address => uint256) balances;
+    mapping(address => uint256) balances;
+    mapping(string => uint256) public actions;
+
+    mapping(uint256 => uint256) public fees;
     
     event Transfer(address indexed from, address indexed to, uint value, bytes indexed data);
+    event Tipped(address _from, address _to, uint256 _amount);
+    event FallbackData(bytes _data);
+    event MadeAnAction(string action, uint256 amount);
 
      modifier onlyOwner() {
         require(msg.sender == owned.getOwner());
         _;
     }
-    
-    event StakedForAction(uint256 amount, address _fromAccount, string action);
-    event NotEnoughStakedFunds(address _fromAccount, string action);
-    event FallbackData(bytes _data);
 
-     function tokenFallback(address _from, uint _value, bytes _data) public {
+    modifier hatch() {
+
+        require(blockAttack == 0);
+        _;
+
+    }
+
+    function tokenFallback(address _from, uint _value, bytes _data) public {
         
         require(msg.sender != address(0));    
     
@@ -49,7 +57,7 @@ contract SapienStaking {
   */
   function transfer(address _to, uint256 _value, bytes _data) public returns (bool) {
     
-        require(_to != address(0));
+        require(_to == sapienToken);
         require(_value <= balances[msg.sender]);
 
         if (_to == sapienToken) {
@@ -65,7 +73,7 @@ contract SapienStaking {
 
         }
 
-  }
+    }
 
     function SapienStaking(address _token, address _owned) {
         
@@ -74,38 +82,80 @@ contract SapienStaking {
         
     }
 
-    function changeTokenAddress(address _token) onlyOwner {
+    function() payable {
+
+        revert();
+
+    }
+
+    function changeActionCost(string _action, uint256 tokenAmount) public onlyOwner {
+
+        actions[_action] = tokenAmount;
+
+    }
+
+    function deleteAction(string _action) public onlyOwner {
+
+        actions[_action] = 0;
+
+    }
+
+    function addAction(string actionName, uint256 cost) public onlyOwner {
+
+        actions[actionName] = cost;
+
+    }
+
+    function changeTokenAddress(address _token) public onlyOwner {
 
         sapienToken = _token;
 
     }
+
+    function changeFee(uint256 month, uint256 feeAmount) public onlyOwner {
+
+        fees[month] = feeAmount;
+
+    }
     
     function balanceOf(address _owner) public constant returns (uint256 balance) {
-      return balances[_owner];
+      return balances[_owner].add(currentlyUsed[_owner]);
     }
 
-    function interactWithSapien(string action, address _user) internal {
+    function tipUser(address _to, uint256 _amount) public hatch {
+
+        require(balances[msg.sender] >= _amount);
+
+        balances[msg.sender] = balances[msg.sender].sub(_amount);
+
+        balances[_to] = balances[_to].add(_amount);
+
+        Tipped(msg.sender, _to, _amount);
+
+    }
+
+    function interactWithSapien(string _action, address _user) public hatch {
 
         require(msg.sender == _user);
+        require(actions[_action] > 0);
+        require(balances[_user] > actions[_action]);
 
-        if (StringUtils.equal(action, "VOTE")) {
+        balances[_user] = balances[_user].sub(actions[_action]);
 
-            balances[_user] = balances[_user].sub(forVote);
+    }
 
-        } else if (StringUtils.equal(action, "COMMENT")) {
+    function escapeHatch() public onlyOwner {
 
-            balances[_user] = balances[_user].sub(forComment);
+        if (blockAttack == 0) {
 
-        } else if (StringUtils.equal(action, "POST")) {
-
-            balances[_user] = balances[_user].sub(forPosting);
+            blockAttack = 1;
 
         } else {
 
-            revert();
+            blockAttack = 0;
 
         }
-
+            
     }
 
 }

@@ -1,218 +1,333 @@
-pragma solidity ^0.4.15;
+pragma solidity ^0.4.18;
 
-/**
- * Basic multi-signer wallet designed for use in a co-signing environment where 2 signatures are required to move funds.
- * Typically used in a 2-of-3 signing configuration. Uses ecrecover to allow for 2 signatures in a single transaction.
- * https://github.com/BitGo/eth-multisig-v2/blob/master/contracts/WalletSimple.sol
- */
-contract MultisigWallet {
-    // Events
-    event Deposited(address from, uint value, bytes data);
-    event SafeModeActivated(address msgSender);
+import "contracts/interfaces/MultisigWalletInterface.sol";
 
-    event Transacted(
-        address msgSender, // Address of the sender of the message initiating the transaction
-        address otherSigner, // Address of the signer (second signature) used to initiate the transaction
-        bytes32 operation, // Operation hash (sha3 of toAddress, value, data, expireTime, sequenceId)
-        address toAddress, // The address the transaction was sent to
-        uint value, // Amount of Wei sent to the address
-        bytes data // Data sent when invoking the transaction
-    );
+/// @title Multisignature wallet - Allows multiple parties to agree on transactions before execution.
+/// @author Stefan George - <stefan.george@consensys.net>
 
-    event TokenTransacted(
-        address msgSender, // Address of the sender of the message initiating the transaction
-        address otherSigner, // Address of the signer (second signature) used to initiate the transaction
-        bytes32 operation, // Operation hash (sha3 of toAddress, value, tokenContractAddress, expireTime, sequenceId)
-        address toAddress, // The address the transaction was sent to
-        uint value, // Amount of token sent
-        address tokenContractAddress // The contract address of the token
-    );
+contract MultiSigWallet is MultisigWalletInterface {
 
-    // Public fields
-    address[] public signers; // The addresses that can co-sign transactions on the wallet
-    bool public safeMode = false; // When active, wallet may only send to signer addresses
-
-    // Internal fields
-    uint constant SEQUENCE_ID_WINDOW_SIZE = 10;
-    uint[10] recentSequenceIds;
-
-    /**
-     * Modifier that will execute internal code block only if the sender is an authorized signer on this wallet
-     */
-    modifier onlysigner {
-        require(isSigner(msg.sender));
+    modifier onlyWallet() {
+        if (msg.sender != address(this))
+            throw;
         _;
     }
 
-    /**
-     * Set up a simple multi-sig wallet by specifying the signers allowed to be used on this wallet.
-     * 2 signers will be required to send a transaction from this wallet.
-     * Note: The sender is NOT automatically added to the list of signers.
-     * Signers CANNOT be changed once they are set
-     *
-     * @param allowedSigners An array of signers on the wallet
-     */
-    function MultisigWallet(address[] allowedSigners) {
-        require(allowedSigners.length == 3);
-        signers = allowedSigners;
+    modifier ownerDoesNotExist(address owner) {
+        if (isOwner[owner])
+            throw;
+        _;
     }
 
-    /**
-     * Gets called when a transaction is received without calling a method
-     */
+    modifier ownerExists(address owner) {
+        if (!isOwner[owner])
+            throw;
+        _;
+    }
+
+    modifier transactionExists(uint transactionId) {
+        if (transactions[transactionId].destination == 0)
+            throw;
+        _;
+    }
+
+    modifier confirmed(uint transactionId, address owner) {
+        if (!confirmations[transactionId][owner])
+            throw;
+        _;
+    }
+
+    modifier notConfirmed(uint transactionId, address owner) {
+        if (confirmations[transactionId][owner])
+            throw;
+        _;
+    }
+
+    modifier notExecuted(uint transactionId) {
+        if (transactions[transactionId].executed)
+            throw;
+        _;
+    }
+
+    modifier notNull(address _address) {
+        if (_address == 0)
+            throw;
+        _;
+    }
+
+    modifier validRequirement(uint ownerCount, uint _required) {
+        if ( ownerCount > MAX_OWNER_COUNT
+            || _required > ownerCount
+            || _required == 0
+            || ownerCount == 0)
+            throw;
+        _;
+    }
+
     function() payable {
+        
         if (msg.value > 0) {
-            // Fire deposited event if we are receiving funds
-            Deposited(msg.sender, msg.value, msg.data);
+
+            Deposit(msg.sender, msg.value);
+
         }
+            
     }
 
-    /**
-     * Execute a multi-signature transaction from this wallet using 2 signers: one from msg.sender and the other from ecrecover.
-     * The signature is a signed form (using eth.sign) of tightly packed toAddress, value, data, expireTime and sequenceId
-     * Sequence IDs are numbers starting from 1. They are used to prevent replay attacks and may not be repeated.
-     *
-     * @param toAddress the destination address to send an outgoing transaction
-     * @param value the amount in Wei to be sent
-     * @param data the data to send to the toAddress when invoking the transaction
-     * @param expireTime the number of seconds since 1970 for which this transaction is valid
-     * @param sequenceId the unique sequence id obtainable from getNextSequenceId
-     * @param signature the result of eth.sign on the operationHash sha3(toAddress, value, data, expireTime, sequenceId)
+    /*
+     * Public functions
      */
-    function sendMultiSig(address toAddress, uint value, bytes data, uint expireTime, uint sequenceId, bytes signature) onlysigner {
+    /// @dev Contract constructor sets initial owners and required number of confirmations.
+    /// @param _owners List of initial owners.
+    /// @param _required Number of required confirmations.
+
+    function MultiSigWallet(address[] _owners, uint _required) 
+        public validRequirement(_owners.length, _required) {
         
-        // Verify the other signer
-        var operationHash = keccak256("ETHER", toAddress, value, data, expireTime, sequenceId);
+        for (uint i=0; i<_owners.length; i++) {
 
-        var otherSigner = verifyMultiSig(toAddress, operationHash, signature, expireTime, sequenceId);
-
-        // Success, send the transaction
-        require(toAddress.call.value(value)(data));
-        Transacted(msg.sender, otherSigner, operationHash, toAddress, value, data);
-        
-    }
-
-    /**
-     * Do common multisig verification for both eth sends and erc20token transfers
-     *
-     * @param toAddress the destination address to send an outgoing transaction
-     * @param operationHash the sha3 of the toAddress, value, data/tokenContractAddress and expireTime
-     * @param signature the tightly packed signature of r, s, and v as an array of 65 bytes (returned by eth.sign)
-     * @param expireTime the number of seconds since 1970 for which this transaction is valid
-     * @param sequenceId the unique sequence id obtainable from getNextSequenceId
-     * returns address of the address to send tokens or eth to
-     */
-    function verifyMultiSig(address toAddress, bytes32 operationHash, bytes signature, uint expireTime, uint sequenceId) private returns (address) {
-
-        var otherSigner = recoverAddressFromSignature(operationHash, signature);
-
-        // Verify if we are in safe mode. In safe mode, the wallet can only send to signers
-        if (safeMode && !isSigner(toAddress)) {
-            // We are in safe mode and the toAddress is not a signer. Disallow!
-            revert();
-        }
-        // Verify that the transaction has not expired
-        assert(expireTime < block.timestamp);
-
-        // Try to insert the sequence ID. Will throw if the sequence id was invalid
-        tryInsertSequenceId(sequenceId);
-
-        require(isSigner(otherSigner));
-
-        // Cannot approve own transaction
-        require(otherSigner != msg.sender);
-        return otherSigner;
-    }
-
-    /**
-     * Irrevocably puts contract into safe mode. When in this mode, transactions may only be sent to signing addresses.
-     */
-    function activateSafeMode() onlysigner {
-        safeMode = true;
-        SafeModeActivated(msg.sender);
-    }
-
-    /**
-     * Determine if an address is a signer on this wallet
-     * @param signer address to check
-     * returns boolean indicating whether address is signer or not
-     */
-    function isSigner(address signer) returns (bool) {
-        // Iterate through all signers on the wallet and
-        for (uint i = 0; i < signers.length; i++) {
-            if (signers[i] == signer) {
-                return true;
-            }
-        }
-        return false;
-    }
-
-    /**
-     * Gets the second signer's address using ecrecover
-     * @param operationHash the sha3 of the toAddress, value, data/tokenContractAddress and expireTime
-     * @param signature the tightly packed signature of r, s, and v as an array of 65 bytes (returned by eth.sign)
-     * returns address recovered from the signature
-     */
-    function recoverAddressFromSignature(bytes32 operationHash, bytes signature) private returns (address) {
-        require (signature.length != 65);
-
-        // We need to unpack the signature, which is given as an array of 65 bytes (from eth.sign)
-        bytes32 r;
-        bytes32 s;
-        uint8 v;
-        assembly {
-        r := mload(add(signature, 32))
-        s := mload(add(signature, 64))
-        v := and(mload(add(signature, 65)), 255)
-        }
-        if (v < 27) {
-            v += 27; // Ethereum versions are 27 or 28 as opposed to 0 or 1 which is submitted by some signing libs
-        }
-        return ecrecover(operationHash, v, r, s);
-    }
-
-    /**
-     * Verify that the sequence id has not been used before and inserts it. Reverts if the sequence ID was not accepted.
-     * We collect a window of up to 10 recent sequence ids, and allow any sequence id that is not in the window and
-     * greater than the minimum element in the window.
-     * @param sequenceId to insert into array of stored ids
-     */
-    function tryInsertSequenceId(uint sequenceId) onlysigner private {
-        // Keep a pointer to the lowest value element in the window
-        uint lowestValueIndex = 0;
-        for (uint i = 0; i < SEQUENCE_ID_WINDOW_SIZE; i++) {
-            if (recentSequenceIds[i] == sequenceId) {
-                // This sequence ID has been used before. Disallow!
+            if (isOwner[_owners[i]] || _owners[i] == 0)
                 revert();
-            }
-            if (recentSequenceIds[i] < recentSequenceIds[lowestValueIndex]) {
-                lowestValueIndex = i;
-            }
+
+            isOwner[_owners[i]] = true;
+
         }
-        if (sequenceId < recentSequenceIds[lowestValueIndex]) {
-            // The sequence ID being used is lower than the lowest value in the window
-            // so we cannot accept it as it may have been used before
-            revert();
-        }
-        if (sequenceId > (recentSequenceIds[lowestValueIndex] + 10000)) {
-            // Block sequence IDs which are much higher than the lowest value
-            // This prevents people blocking the contract by using very large sequence IDs quickly
-            revert();
-        }
-        recentSequenceIds[lowestValueIndex] = sequenceId;
+
+        owners = _owners;
+        required = _required;
+
     }
 
-    /**
-     * Gets the next available sequence ID for signing when using executeAndConfirm
-     * returns the sequenceId one higher than the highest currently stored
-     */
-    function getNextSequenceId() returns (uint) {
-        uint highestSequenceId = 0;
-        for (uint i = 0; i < SEQUENCE_ID_WINDOW_SIZE; i++) {
-            if (recentSequenceIds[i] > highestSequenceId) {
-                highestSequenceId = recentSequenceIds[i];
+    
+    function addOwner(address owner)
+        public onlyWallet ownerDoesNotExist(owner)
+        notNull(owner)
+        validRequirement(owners.length + 1, required) {
+
+        isOwner[owner] = true;
+        owners.push(owner);
+        OwnerAddition(owner);
+    
+    }
+
+    function removeOwner(address owner)
+        public onlyWallet ownerExists(owner) {
+
+        isOwner[owner] = false;
+
+        for (uint i=0; i<owners.length - 1; i++) {
+
+            if (owners[i] == owner) {
+                owners[i] = owners[owners.length - 1];
+                break;
+            }
+
+        }
+            
+        owners.length -= 1;
+
+        if (required > owners.length)
+            changeRequirement(owners.length);
+
+        OwnerRemoval(owner);
+
+    }
+
+    function replaceOwner(address owner, address newOwner) public
+        onlyWallet ownerExists(owner) ownerDoesNotExist(newOwner) {
+
+        for (uint i=0; i<owners.length; i++) {
+
+            if (owners[i] == owner) {
+
+                owners[i] = newOwner;
+                break;
+
+            }
+
+        }
+            
+        isOwner[owner] = false;
+        isOwner[newOwner] = true;
+        OwnerRemoval(owner);
+        OwnerAddition(newOwner);
+
+    }
+
+    function changeRequirement(uint _required)
+        public
+        onlyWallet
+        validRequirement(owners.length, _required)
+    {
+        required = _required;
+        RequirementChange(_required);
+    }
+
+    function submitTransaction(address destination, uint value, bytes data)
+        public
+        returns (uint transactionId)
+    {
+        transactionId = addTransaction(destination, value, data);
+        confirmTransaction(transactionId);
+    }
+
+    function confirmTransaction(uint transactionId)
+        public
+        ownerExists(msg.sender)
+        transactionExists(transactionId)
+        notConfirmed(transactionId, msg.sender)
+    {
+        confirmations[transactionId][msg.sender] = true;
+        Confirmation(msg.sender, transactionId);
+        executeTransaction(transactionId);
+    }
+
+    function revokeConfirmation(uint transactionId)
+        public
+        ownerExists(msg.sender)
+        confirmed(transactionId, msg.sender)
+        notExecuted(transactionId)
+    {
+        confirmations[transactionId][msg.sender] = false;
+        Revocation(msg.sender, transactionId);
+    }
+
+    function executeTransaction(uint transactionId)
+        public
+        notExecuted(transactionId) {
+
+        if (isConfirmed(transactionId)) {
+
+            Transaction tx = transactions[transactionId];
+            tx.executed = true;
+
+            if (tx.destination.call.value(tx.value)(tx.data))
+                Execution(transactionId);
+
+            else {
+
+                ExecutionFailure(transactionId);
+                tx.executed = false;
+
             }
         }
-        return highestSequenceId + 1;
+    }
+
+    function isConfirmed(uint transactionId)
+        public constant returns (bool) {
+        
+        uint count = 0;
+
+        for (uint i=0; i<owners.length; i++) {
+
+            if (confirmations[transactionId][owners[i]])
+                count += 1;
+
+            if (count == required)
+                return true;
+
+        }
+
+    }
+
+    function addTransaction(address destination, uint value, bytes data)
+        internal notNull(destination) returns (uint transactionId) {
+
+        transactionId = transactionCount;
+
+        transactions[transactionId] = Transaction({
+            destination: destination,
+            value: value,
+            data: data,
+            executed: false
+        });
+
+        transactionCount += 1;
+        Submission(transactionId);
+
+    }
+
+    function getConfirmationCount(uint transactionId)
+        public constant returns (uint count) {
+
+        for (uint i=0; i<owners.length; i++) {
+
+            if (confirmations[transactionId][owners[i]])
+                count += 1;
+
+        }
+            
+    }
+
+    function getTransactionCount(bool pending, bool executed)
+        public constant returns (uint count) {
+
+        for (uint i=0; i<transactionCount; i++) {
+
+            if (pending && !transactions[i].executed
+                || executed && transactions[i].executed)
+                count += 1;
+
+        }
+            
+    }
+
+    function getOwners() public constant returns (address[]) {
+        
+        return owners;
+    
+    }
+
+    function getConfirmations(uint transactionId)
+        public
+        constant
+        returns (address[] _confirmations) {
+
+        address[] memory confirmationsTemp = new address[](owners.length);
+        uint count = 0;
+        uint i;
+
+        for (i=0; i<owners.length; i++) {
+
+             if (confirmations[transactionId][owners[i]]) {
+                confirmationsTemp[count] = owners[i];
+                count += 1;
+            }
+
+        }
+           
+        _confirmations = new address[](count);
+
+        for (i=0; i<count; i++)
+            _confirmations[i] = confirmationsTemp[i];
+
+    }
+
+    function getTransactionIds(uint from, uint to, bool pending, bool executed)
+        public
+        constant
+        returns (uint[] _transactionIds) {
+
+        uint[] memory transactionIdsTemp = new uint[](transactionCount);
+        uint count = 0;
+        uint i;
+
+        for (i=0; i<transactionCount; i++) {
+
+            if (pending && !transactions[i].executed
+                || executed && transactions[i].executed) {
+
+                transactionIdsTemp[count] = i;
+                count += 1;
+
+            }
+
+        }
+            
+        _transactionIds = new uint[](to - from);
+
+        for (i=from; i<to; i++)
+            _transactionIds[i - from] = transactionIdsTemp[i];
+            
     }
 }

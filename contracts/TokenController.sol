@@ -1,7 +1,7 @@
-pragma solidity ^0.4.15;
+pragma solidity ^0.4.18;
 
 import "contracts/Owned.sol";
-import "node_modules/zeppelin-solidity/contracts/token/SapienToken.sol";
+import "contracts/SapienToken.sol";
 
 contract TokenController {
 
@@ -14,9 +14,16 @@ contract TokenController {
 
     /// @dev `owner` is the only address that can call a function with this
     /// modifier
-    modifier onlyOwner() {
+    modifier acceptedOwners() {
         require(msg.sender == owned.getOwner() || crowdsale == msg.sender);
         _;
+    }
+
+    modifier onlyOwner() {
+
+        require(msg.sender == owned.getOwner());
+        _;
+
     }
 
     function TokenController(address _sapien, address _owned) {
@@ -32,19 +39,19 @@ contract TokenController {
 
     }
 
-    function changeBasicToken(address _sapien) onlyOwner {
+    function changeBasicToken(address _sapien) public onlyOwner {
 
         sapienToken = SapienToken(_sapien);
 
     }
 
-    function changeOwned(address _owned) onlyOwner {
+    function changeOwned(address _owned) public onlyOwner {
 
         owned = Owned(_owned);
 
     }
 
-    function changeCrowdsale(address _crowdsale) onlyOwner {
+    function changeCrowdsale(address _crowdsale) public onlyOwner {
 
         crowdsale = _crowdsale;
 
@@ -56,16 +63,14 @@ contract TokenController {
      * @param _amount The amount of tokens to mint.
      * @return A boolean that indicates if the operation was successful.
      */
-    function allocateTokens(address _to, uint256 _amount) onlyOwner returns (bool) {
+    function allocateTokens(address _to, uint256 _amount) acceptedOwners returns (bool) {
         sapienToken.increaseCirculation(_amount);
         sapienToken.addToBalance(_to, _amount);
         Allocate(_to, _amount);
         return true;
     }
 
-    function destroyController() {
-
-        require(msg.sender == owned.getOwner());
+    function upgrade() onlyOwner {
 
         suicide(msg.sender);
 

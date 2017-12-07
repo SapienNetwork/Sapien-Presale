@@ -1,15 +1,9 @@
-pragma solidity ^0.4.15;
+pragma solidity ^0.4.18;
 
 import "contracts/Owned.sol";
+import "contracts/interfaces/DynamicCrowdsaleInterface.sol";
 
-contract DynamicCrowdsale {
-
-    struct Stage {
-
-        uint256 blockNumber;
-        uint256 permittedInvestment;
-
-    }
+contract DynamicCrowdsale is DynamicCrowdsaleInterface {
 
     /// @dev `owner` is the only address that can call a function with this
     /// modifier
@@ -19,9 +13,6 @@ contract DynamicCrowdsale {
     }
 
     Owned private owned;
-    Stage[] public stages;
-    uint256 public position = 0;
-    uint256 public maxPosition = 0;
 
     function DynamicCrowdsale(address _owned) {
 
@@ -29,7 +20,13 @@ contract DynamicCrowdsale {
 
     }
 
-    function addMilestone(uint256 block, uint256 investment) onlyOwner {
+    function() payable {
+
+        revert();
+
+    }
+
+    function addMilestone(uint256 block, uint256 investment) public onlyOwner {
 
         require(stages[maxPosition].blockNumber < block);
         require(stages[maxPosition].permittedInvestment > investment);
@@ -42,9 +39,15 @@ contract DynamicCrowdsale {
 
     }
 
-    function deleteMilestone(uint256 position) internal onlyOwner {
+    function deleteMilestone(uint256 position) public onlyOwner {
 
         delete stages[position];
+
+        for (uint i = position; i < maxPosition - 1; i++) {
+
+            stages[i] = stages[i + 1];
+
+        }
 
         maxPosition -= 1;
 
@@ -70,7 +73,7 @@ contract DynamicCrowdsale {
 
     }
 
-    function setCurrentStage(uint256 stage) internal onlyOwner {
+    function setCurrentStage(uint256 stage) public onlyOwner {
 
         position = stage;
 

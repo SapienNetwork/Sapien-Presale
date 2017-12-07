@@ -1,65 +1,21 @@
-pragma solidity ^0.4.15;
+pragma solidity ^0.4.18;
 
 import "contracts/Owned.sol";
 import "contracts/TokenController.sol";
 import "contracts/DynamicCrowdsale.sol";
-import "node_modules/zeppelin-solidity/contracts/math/SafeMath.sol";
+import "contracts/interfaces/SapienCrowdsaleInterface.sol";
+import "contracts/libraries/SafeMath.sol";
 
-contract SapienCrowdsale {
+contract SapienCrowdsale is SapienCrowdsaleInterface {
 
     using SafeMath for uint256;
 
     DynamicCrowdsale dynamic;
 
-    // maximum gas price for contribution transactions
-    uint256 public constant MAX_GAS_PRICE = 50000000000;
-
-    // start and end block where investments are allowed (both inclusive)
-    uint256 public startBlock;
-    uint256 public endBlock;
-
-    // address where funds are collected
-    address public wallet;
-
-    // how many token units a buyer gets per wei
-    uint256 public rate;
-
-    // amount of raised money in wei
-    uint256 public weiRaised;
-
-    // hard cap, campaign ends after reached
-    uint256 public weiCap;
-
-    //for escape hatch; if 0, all functions can be used; if 1, only some functions can be used
-    uint256 blockAttack = 0;
-
-    //SPN token
+    //SPN token Controller
     TokenController public token;
 
     Owned private owned;
-
-    //allows for owner to pause the campaign if needed
-    bool public paused;
-
-    struct Investor {
-
-        uint256 amountOfWeiInvested;
-        uint256 calculatedTokens;
-
-    }
-
-    mapping(address => Investor) public investorInfo;
-
-     /**
-     * event for token purchase logging
-     * @param purchaser who paid for the tokens
-     * @param beneficiary who got the tokens
-     * @param value weis paid for purchase
-     * @param amount amount of tokens purchased
-     */
-    event TokenPurchase(address indexed purchaser, address indexed beneficiary, uint256 value, uint256 amount);
-
-    event Transferred(uint256 amount);
 
     modifier afterDeadline() {
 
@@ -106,7 +62,7 @@ contract SapienCrowdsale {
         dynamic = DynamicCrowdsale(dynamicAddress);
     }
 
-     function changeOwned(address _owned) onlyOwner {
+     function changeOwned(address _owned) public onlyOwner {
 
         owned = Owned(_owned);
 
@@ -130,8 +86,20 @@ contract SapienCrowdsale {
 
     }
 
+    function changeBonusMilestone(uint256 position, uint256 newValue) public onlyOwner hatch {
+
+        bonusMilestones[position] = newValue;
+
+    }
+
+    function changeBonusRate(uint256 position, uint256 newValue) public onlyOwner hatch {
+
+        bonusRates[position] = newValue;
+
+    }
+
     // Pauses the contribution if there is any issue
-    function pauseContribution() onlyOwner {
+    function pauseContribution() public onlyOwner {
         paused = true;
     }
 
@@ -146,39 +114,81 @@ contract SapienCrowdsale {
 
     }
 
+    function switchWallet(address _wallet) onlyOwner {
+
+        wallet = _wallet;
+
+    }
+
     // fallback function can be used to buy tokens
     function () payable {
         buyTokens(msg.sender);
     }
 
+    function limitPerInvestor(uint256 limit) public onlyOwner hatch {
+
+        investorLimit = limit;
+
+    }
+
+    function changeBaseRate(uint256 baseRate) onlyOwner hatch {
+
+        rate = baseRate;
+
+    }
+
     function buyTokens(address beneficiary) payable validGasPrice hatch {
         
         require(beneficiary != 0x0);
-        require(validPurchase(msg.sender));
+        require(msg.value > 0);
 
-        uint256 allowed = dynamic.allowedInvestment(msg.value);
+        uint256 allowed = 0;
+        
+        if (dynamic != address(0)) {
+
+            allowed = dynamic.allowedInvestment(msg.value);
+
+        } else {
+
+            allowed = msg.value;
+                
+        }
+
+        if (limitPerInvestor != 0) {
+
+            require(investorInfo[msg.sender].amountOfWeiInvested < limitPerInvestor);
+
+            if (allowed.add(investorInfo[msg.sender].amountOfWeiInvested) > limitPerInvestor) {
+
+                allowed = limitPerInvestor.sub(investorInfo[msg.sender].amountOfWeiInvested);
+
+            }
+
+        }
+
+        require(validPurchase(msg.sender, allowed));
 
         uint256 bonusRate = getBonusRate(allowed);
 
         // calculate token amount to be created
-        uint256 tokens = bonusRate.mul(msg.value);
+        uint256 tokens = bonusRate.mul(allowed);
 
         bonusRate = 0;
 
         // update state
-        weiRaised = weiRaised.add(msg.value);
+        weiRaised = weiRaised.add(allowed);
 
-        investorInfo[msg.sender].amountOfWeiInvested = investorInfo[msg.sender].amountOfWeiInvested.add(msg.value);
+        investorInfo[msg.sender].amountOfWeiInvested = investorInfo[msg.sender].amountOfWeiInvested.add(allowed);
 
         investorInfo[msg.sender].calculatedTokens = investorInfo[msg.sender].calculatedTokens.add(tokens);
 
-        TokenPurchase(msg.sender, beneficiary, msg.value, tokens);
+        TokenPurchase(msg.sender, beneficiary, allowed, tokens);
 
         tokens = 0;
 
         if (msg.value != allowed) {
 
-            msg.sender.transfer(msg.value - allowed);
+            msg.sender.transfer(msg.value.sub(allowed));
 
         }
         
@@ -186,31 +196,31 @@ contract SapienCrowdsale {
 
     function getBonusRate(uint256 weiAmount) internal returns (uint256) {
 
-        uint256 bonusRate = rate;
+        uint256 bonus = rate;
 
-        if (weiAmount >= 33 * 10**18 && weiAmount < 166 * 10**18) {
+        if (weiAmount >= bonusMilestones[0] * 10**18 && weiAmount < bonusMilestones[1] * 10**18) {
 
-            bonusRate = 2575;
+            bonus = bonusRates[0];
 
-        } else if (weiAmount >= 166 * 10**18 && weiAmount < 333 * 10**18) {
+        } else if (weiAmount >= bonusMilestones[1] * 10**18 && weiAmount < bonusMilestones[2] * 10**18) {
 
-            bonusRate = 2675;
+            bonus = bonusRates[1];
 
-        } else if (weiAmount >= 333 * 10**18 && weiAmount < 833 * 10**18) {
+        } else if (weiAmount >= bonusMilestones[2] * 10**18 && weiAmount < bonusMilestones[3] * 10**18) {
 
-            bonusRate = 2875;
+            bonus = bonusRates[2];
 
-        } else if (weiAmount >= 833 * 10**18 && weiAmount < 1666 * 10**18) {
+        } else if (weiAmount >= bonusMilestones[3] * 10**18 && weiAmount < bonusMilestones[4] * 10**18) {
 
-            bonusRate = 3000;
+            bonus = bonusRates[3];
 
-        } else if (weiAmount >= 1666 * 10**18) {
+        } else if (weiAmount >= bonusMilestones[4] * 10**18) {
 
-            bonusRate = 3750;
+            bonus = bonusRates[4];
 
         }
 
-        return bonusRate;
+        return bonus;
 
     }
 
@@ -232,7 +242,7 @@ contract SapienCrowdsale {
 
     // send ether to the fund collection wallet
 
-    function safeWithdrawal() internal afterDeadline onlyOwner hatch {
+    function safeWithdrawal() public afterDeadline onlyOwner hatch {
         
         uint256 funds = weiRaised;
 
@@ -256,27 +266,40 @@ contract SapienCrowdsale {
 
     }
 
-    function distributeTokens(address investor) internal onlyOwner afterDeadline hatch {
+    function distributeTokens(address investor) public onlyOwner afterDeadline {
+
+        require(investorInfo[investor].amountOfWeiInvested > 0);
+
+        uint256 tokensToSend = investorInfo[investor].calculatedTokens;
+
+        investorInfo[investor].calculatedTokens = 0;
+
+        token.allocateTokens(investor, tokensToSend);
+
+    }
+
+    function claimTokens() public afterDeadline {
 
         require(investorInfo[msg.sender].amountOfWeiInvested > 0);
 
+        uint256 tokensToSend = investorInfo[msg.sender].calculatedTokens;
+
         investorInfo[msg.sender].calculatedTokens = 0;
 
-        token.allocateTokens(investor, investorInfo[msg.sender].calculatedTokens);
+        token.allocateTokens(msg.sender, tokensToSend);
 
     }
 
     // @return true if the transaction can buy tokens
-    function validPurchase(address investor) internal constant returns (bool) {
+    function validPurchase(address investor, uint256 allowed) internal constant returns (bool) {
         uint256 current = block.number;
         bool withinPeriod = current >= startBlock && current <= endBlock;
-        bool nonZeroPurchase = msg.value != 0;
-        bool withinCap = weiRaised.add(msg.value) <= weiCap;
+        bool withinCap = weiRaised.add(allowed) <= weiCap;
         bool investorIsContract = isContract(investor);
-        return withinCap && withinPeriod && nonZeroPurchase && !paused && !investorIsContract;
+        return withinCap && withinPeriod && !paused && !investorIsContract;
     }
 
-    function isContract(address _addr) private returns (bool is_contract) {
+    function isContract(address _addr) internal constant returns (bool is_contract) {
       
       uint length;
 
@@ -289,15 +312,18 @@ contract SapienCrowdsale {
 
     }
 
-    function escapeHatch() onlyOwner {
+    function escapeHatch() public onlyOwner {
 
         if (blockAttack == 0) {
 
             blockAttack = 1;
 
-        } else
+        } else {
+
             blockAttack = 0;
 
+        }
+            
     }
 
 }
