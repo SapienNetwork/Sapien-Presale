@@ -5,7 +5,7 @@ import "contracts/SapienToken.sol";
 
 contract TokenController {
 
-    SapienToken private sapienToken;
+    ERC223 private sapienToken;
     Owned private owned;
 
     address private crowdsale;
@@ -28,7 +28,7 @@ contract TokenController {
 
     function TokenController(address _sapien, address _owned) {
 
-        sapienToken = SapienToken(_sapien);
+        sapienToken = ERC223(_sapien);
         owned = Owned(_owned);
     
     }
@@ -41,7 +41,7 @@ contract TokenController {
 
     function changeBasicToken(address _sapien) public onlyOwner {
 
-        sapienToken = SapienToken(_sapien);
+        sapienToken = ERC223(_sapien);
 
     }
 

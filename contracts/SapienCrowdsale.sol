@@ -10,10 +10,10 @@ contract SapienCrowdsale is SapienCrowdsaleInterface {
 
     using SafeMath for uint256;
 
-    DynamicCrowdsale dynamic;
+    DynamicCrowdsaleInterface dynamic;
 
     //SPN token Controller
-    TokenController public token;
+    TokenControllerInterface public token;
 
     Owned private owned;
 
@@ -56,10 +56,9 @@ contract SapienCrowdsale is SapienCrowdsaleInterface {
         _;
     }
 
-    function SapienCrowdsale(address _owned, address utilsAddress, address dynamicAddress) {
+    function SapienCrowdsale(address _owned, address utilsAddress) {
         paused = false;
         owned = Owned(_owned);
-        dynamic = DynamicCrowdsale(dynamicAddress);
     }
 
      function changeOwned(address _owned) public onlyOwner {
@@ -82,7 +81,7 @@ contract SapienCrowdsale is SapienCrowdsaleInterface {
         rate = _rate;
         wallet = _wallet;
         weiCap = _cap;
-        token = TokenController(_token);
+        token = TokenControllerInterface(_token);
 
     }
 
@@ -98,6 +97,12 @@ contract SapienCrowdsale is SapienCrowdsaleInterface {
 
     }
 
+    function changeDynamic(address _dynamic) public onlyOwner hatch {
+
+        dynamic = DynamicCrowdsaleInterface(_dynamic);
+
+    }
+
     // Pauses the contribution if there is any issue
     function pauseContribution() public onlyOwner {
         paused = true;
@@ -110,7 +115,7 @@ contract SapienCrowdsale is SapienCrowdsaleInterface {
 
     function switchSapienToken(address _token) onlyOwner {
 
-        token = TokenController(_token);
+        token = TokenControllerInterface(_token);
 
     }
 

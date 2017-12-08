@@ -2,14 +2,12 @@ pragma solidity ^0.4.18;
 
 contract ERC223 {
 
-    mapping(address => uint256) balances;
-
     string public name = "SAPIEN COIN";
     string public symbol = "SPN";
 
     uint256 public decimals = 18;
     uint256 private canStake = 0;
-    uint256 public totalSupply;
+    uint256 public totalSupply = 0;
     uint256 public currentlyInCirculation = 0;
 
     address private controller;
@@ -28,31 +26,37 @@ contract ERC223 {
     */
     function transfer(address _to, uint256 _value, bytes _data) public returns (bool);
 
-    function changeOwned(address _owned);
+    function changeOwned(address _owned) public;
 
-    function changeController(address _controller);
+    function changeController(address _controller) public;
 
     // Function to access name of token .
-    function name() constant returns (string _name);
+    function name() public constant returns (string _name);
 
     // Function to access symbol of token .
-    function symbol() constant returns (string _symbol);
+    function symbol() public constant returns (string _symbol);
 
     // Function to access decimals of token .
-    function getDecimals() constant returns (uint256 _decimals);
+    function getDecimals() public constant returns (uint256 _decimals);
 
     // Function to access total supply of tokens .
-    function getTotalSupply() constant returns (uint256);
+    function getTotalSupply() public constant returns (uint256);
 
-    function isContract(address _addr) private returns (bool is_contract);
+    function isContract(address _addr) private constant returns (bool is_contract);
 
-    function enableTransferToContract(address _stake);
+    function changeSPNStorage(address _storageAddr);
+
+    /** 
+    * Allow people to start staking tokens
+    */
+
+    function enableStaking(address _stake);
 
     /**
     *@dev Disable staking in case of attack/vulnerability/etc
     */
 
-    function disableTransferToContract();
+    function disableStaking();
 
     /**
     * @dev Gets the balance of the specified address.
@@ -61,11 +65,13 @@ contract ERC223 {
     */
     function balanceOf(address _owner) public constant returns (uint256 balance);
 
-    function increaseCirculation(uint256 _amount) public;
-
     function addToBalance(address _to, uint256 _amount) public;
+
+    function increaseCirculation(uint256 _amount) public;
 
     //function that is called when transaction target is an address
     function transferToAddress(address _to, uint _value, bytes _data) internal returns (bool success);
+
+    function upgrade(address newContract) public;
 
 }

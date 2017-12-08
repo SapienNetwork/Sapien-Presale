@@ -3,30 +3,19 @@ pragma solidity ^0.4.18;
 import "contracts/Owned.sol";
 import "contracts/libraries/StringUtils.sol";
 import "contracts/SapienToken.sol";
+import "contracts/storage/SPNStorage.sol";
 import "contracts/libraries/SafeMath.sol";
+import "contracts/interfaces/SapienStakingInterface.sol";
 
-contract SapienStaking {
+contract SapienStaking is SapienStakingInterface {
 
     using SafeMath for uint256;
 
     Owned private owned;
 
-    address private sapienToken;
+    SPNStorage _storage;
 
-    uint256 blockAttack = 0;
-    uint256 public timeUntilNoWithdrawalFees = 365 days;
-
-    mapping(address => uint256) balances;
-    mapping(string => uint256) public actions;
-
-    mapping(uint256 => uint256) public fees;
-    
-    event Transfer(address indexed from, address indexed to, uint value, bytes indexed data);
-    event Tipped(address _from, address _to, uint256 _amount);
-    event FallbackData(bytes _data);
-    event MadeAnAction(string action, uint256 amount);
-
-     modifier onlyOwner() {
+    modifier onlyOwner() {
         require(msg.sender == owned.getOwner());
         _;
     }
@@ -44,7 +33,9 @@ contract SapienStaking {
     
         require(msg.sender == sapienToken);
 
-        balances[_from] = balances[_from].add(_value);
+        require(_storage != SPNStorage(0));
+
+        _storage.increaseStakedSPNBalance(_from, _value);
       
         FallbackData(_data);
     
@@ -58,13 +49,14 @@ contract SapienStaking {
   function transfer(address _to, uint256 _value, bytes _data) public returns (bool) {
     
         require(_to == sapienToken);
-        require(_value <= balances[msg.sender]);
+        require(_value <= stakedAmounts[msg.sender]);
+        require(_storage != SPNStorage(0));
 
         if (_to == sapienToken) {
 
-          balances[msg.sender] = balances[msg.sender].sub(_value);
+          _storage.decreaseStakedSPNBalance(msg.sender, _value);
 
-          SapienToken receiver = SapienToken(_to);
+          ERC223 receiver = ERC223(_to);
           receiver.tokenFallback(msg.sender, _value, _data);
 
           Transfer(msg.sender, _to, _value, _data);
@@ -94,6 +86,12 @@ contract SapienStaking {
 
     }
 
+    function changeSPNStorage(address _storageAddr) onlyOwner {
+
+        _storage = SPNStorage(_storageAddr);
+
+    }
+
     function deleteAction(string _action) public onlyOwner {
 
         actions[_action] = 0;
@@ -111,24 +109,20 @@ contract SapienStaking {
         sapienToken = _token;
 
     }
-
-    function changeFee(uint256 month, uint256 feeAmount) public onlyOwner {
-
-        fees[month] = feeAmount;
-
-    }
     
     function balanceOf(address _owner) public constant returns (uint256 balance) {
-      return balances[_owner].add(currentlyUsed[_owner]);
+      return _storage.getStakedBalance(_owner);
     }
 
     function tipUser(address _to, uint256 _amount) public hatch {
 
         require(balances[msg.sender] >= _amount);
+        require(_amount > 0);
+        require(_storage != SPNStorage(0));
 
-        balances[msg.sender] = balances[msg.sender].sub(_amount);
+        _storage.decreaseStakedSPNBalance(msg.sender, _value);
 
-        balances[_to] = balances[_to].add(_amount);
+        _storage.decreaseStakedSPNBalance(_to, _value);
 
         Tipped(msg.sender, _to, _amount);
 
@@ -138,9 +132,12 @@ contract SapienStaking {
 
         require(msg.sender == _user);
         require(actions[_action] > 0);
-        require(balances[_user] > actions[_action]);
+        require(_storage != SPNStorage(0));
+        require(stakedAmounts[_user] > actions[_action]);
 
-        balances[_user] = balances[_user].sub(actions[_action]);
+        _storage.decreaseStakedSPNBalance(_user, actions[_action]);
+
+        MadeAnAction(_action, actions[_action]);
 
     }
 
@@ -156,6 +153,12 @@ contract SapienStaking {
 
         }
             
+    }
+
+    function upgrade() public onlyOwner {
+
+        
+
     }
 
 }

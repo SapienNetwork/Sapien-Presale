@@ -23,6 +23,12 @@ contract SapienCrowdsaleInterface {
 
     //how much Ether an investor can actually invest in the crowdsale; if 0, any investor can send as much Ether as they want
     uint256 investorLimit = 0;
+    
+    // address where funds are collected
+    address private wallet;
+
+     //allows for owner to pause the campaign if needed
+    bool public paused;
 
     //investment milestones for participants in the crowdsale 
     //(ex: 33 eth, 100 eth, 500 eth, 1000 eth and 2000 eth)
@@ -30,12 +36,6 @@ contract SapienCrowdsaleInterface {
 
     mapping(uint256 => uint256) public bonusMilestones;
     mapping(uint256 => uint256) public bonusRates;
-    
-    // address where funds are collected
-    address private wallet;
-
-     //allows for owner to pause the campaign if needed
-    bool public paused;
 
     struct Investor {
 
@@ -64,6 +64,8 @@ contract SapienCrowdsaleInterface {
     function changeBonusMilestone(uint256 position, uint256 newValue) public;
 
     function changeBonusRate(uint256 position, uint256 newValue) public;
+
+    function changeDynamic(address _dynamic) public;
 
     function pauseContribution() public;
 
