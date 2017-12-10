@@ -5,14 +5,25 @@ import "contracts/interfaces/DynamicCrowdsaleInterface.sol";
 
 contract DynamicCrowdsale is DynamicCrowdsaleInterface {
 
+    Stage[] public stages;
+    uint256 public position = 0;
+    uint256 public maxPosition = 0;
+
+    Owned private owned;
+
+    struct Stage {
+
+        uint256 blockNumber;
+        uint256 permittedInvestment;
+
+    }
+
     /// @dev `owner` is the only address that can call a function with this
     /// modifier
     modifier onlyOwner() {
         require(msg.sender == owned.getOwner());
         _;
     }
-
-    Owned private owned;
 
     function DynamicCrowdsale(address _owned) {
 
@@ -23,6 +34,12 @@ contract DynamicCrowdsale is DynamicCrowdsaleInterface {
     function() payable {
 
         revert();
+
+    }
+
+     function changeOwned(address _owned) public onlyOwner {
+
+        owned = Owned(_owned);
 
     }
 

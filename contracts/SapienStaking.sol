@@ -2,7 +2,7 @@ pragma solidity ^0.4.18;
 
 import "contracts/Owned.sol";
 import "contracts/libraries/StringUtils.sol";
-import "contracts/SapienToken.sol";
+import "contracts/interfaces/ERC223.sol";
 import "contracts/storage/SPNStorage.sol";
 import "contracts/libraries/SafeMath.sol";
 import "contracts/interfaces/SapienStakingInterface.sol";
@@ -14,6 +14,12 @@ contract SapienStaking is SapienStakingInterface {
     Owned private owned;
 
     SPNStorage _storage;
+
+    address private sapienToken;
+
+    uint256 blockAttack = 0;
+
+    mapping(string => uint256) private actions;
 
     modifier onlyOwner() {
         require(msg.sender == owned.getOwner());
@@ -41,15 +47,10 @@ contract SapienStaking is SapienStakingInterface {
     
     }
 
-  /**
-  * @dev transfer token for a specified address
-  * @param _to The address to transfer to.
-  * @param _value The amount to be transferred.
-  */
-  function transfer(address _to, uint256 _value, bytes _data) public returns (bool) {
+    function transfer(address _to, uint256 _value, bytes _data) public returns (bool) {
     
         require(_to == sapienToken);
-        require(_value <= stakedAmounts[msg.sender]);
+        require(_value <= _storage.getStakedBalance(msg.sender));
         require(_storage != SPNStorage(0));
 
         if (_to == sapienToken) {
@@ -77,6 +78,12 @@ contract SapienStaking is SapienStakingInterface {
     function() payable {
 
         revert();
+
+    }
+
+    function changeOwned(address _owned) public onlyOwner {
+
+        owned = Owned(_owned);
 
     }
 
@@ -116,28 +123,25 @@ contract SapienStaking is SapienStakingInterface {
 
     function tipUser(address _to, uint256 _amount) public hatch {
 
-        require(balances[msg.sender] >= _amount);
+        require(_storage.getStakedBalance(msg.sender) >= _amount);
         require(_amount > 0);
         require(_storage != SPNStorage(0));
 
-        _storage.decreaseStakedSPNBalance(msg.sender, _value);
+        _storage.decreaseStakedSPNBalance(msg.sender, _amount);
 
-        _storage.decreaseStakedSPNBalance(_to, _value);
+        _storage.decreaseStakedSPNBalance(_to, _amount);
 
         Tipped(msg.sender, _to, _amount);
 
     }
 
-    function interactWithSapien(string _action, address _user) public hatch {
+    function interactWithSapien(string _action) public hatch {
 
-        require(msg.sender == _user);
         require(actions[_action] > 0);
         require(_storage != SPNStorage(0));
-        require(stakedAmounts[_user] > actions[_action]);
+        require(_storage.getStakedBalance(msg.sender) > actions[_action]);
 
-        _storage.decreaseStakedSPNBalance(_user, actions[_action]);
-
-        MadeAnAction(_action, actions[_action]);
+        MadeAnAction(msg.sender, _action, actions[_action]);
 
     }
 
@@ -153,12 +157,6 @@ contract SapienStaking is SapienStakingInterface {
 
         }
             
-    }
-
-    function upgrade() public onlyOwner {
-
-        
-
     }
 
 }

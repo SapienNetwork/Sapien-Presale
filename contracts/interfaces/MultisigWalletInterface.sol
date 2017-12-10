@@ -2,8 +2,6 @@ pragma solidity ^0.4.18;
 
 contract MultisigWalletInterface {
 
-    uint constant public MAX_OWNER_COUNT = 3;
-
     event Confirmation(address indexed sender, uint indexed transactionId);
     event Revocation(address indexed sender, uint indexed transactionId);
     event Submission(uint indexed transactionId);
@@ -13,20 +11,6 @@ contract MultisigWalletInterface {
     event OwnerAddition(address indexed owner);
     event OwnerRemoval(address indexed owner);
     event RequirementChange(uint required);
-
-    mapping (uint => Transaction) public transactions;
-    mapping (uint => mapping (address => bool)) public confirmations;
-    mapping (address => bool) public isOwner;
-    address[] public owners;
-    uint public required;
-    uint public transactionCount;
-
-    struct Transaction {
-        address destination;
-        uint value;
-        bytes data;
-        bool executed;
-    }
 
     /// @dev Fallback function allows to deposit ether.
 

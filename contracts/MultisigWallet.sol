@@ -7,6 +7,22 @@ import "contracts/interfaces/MultisigWalletInterface.sol";
 
 contract MultiSigWallet is MultisigWalletInterface {
 
+    uint constant public MAX_OWNER_COUNT = 3;
+
+    mapping (uint => Transaction) public transactions;
+    mapping (uint => mapping (address => bool)) public confirmations;
+    mapping (address => bool) public isOwner;
+    address[] public owners;
+    uint public required;
+    uint public transactionCount;
+
+    struct Transaction {
+        address destination;
+        uint value;
+        bytes data;
+        bool executed;
+    }
+
     modifier onlyWallet() {
         if (msg.sender != address(this))
             throw;

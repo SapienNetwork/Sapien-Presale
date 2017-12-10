@@ -10,8 +10,6 @@ contract TokenController {
 
     address private crowdsale;
 
-    event Allocate(address indexed to, uint256 amount);
-
     /// @dev `owner` is the only address that can call a function with this
     /// modifier
     modifier acceptedOwners() {
@@ -63,17 +61,11 @@ contract TokenController {
      * @param _amount The amount of tokens to mint.
      * @return A boolean that indicates if the operation was successful.
      */
-    function allocateTokens(address _to, uint256 _amount) acceptedOwners returns (bool) {
+    function allocateTokens(address _to, uint256 _amount) public acceptedOwners returns (bool) {
         sapienToken.increaseCirculation(_amount);
         sapienToken.addToBalance(_to, _amount);
         Allocate(_to, _amount);
         return true;
-    }
-
-    function upgrade() onlyOwner {
-
-        suicide(msg.sender);
-
     }
 
 }

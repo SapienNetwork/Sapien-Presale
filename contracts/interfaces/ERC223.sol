@@ -2,18 +2,6 @@ pragma solidity ^0.4.18;
 
 contract ERC223 {
 
-    string public name = "SAPIEN COIN";
-    string public symbol = "SPN";
-
-    uint256 public decimals = 18;
-    uint256 private canStake = 0;
-    uint256 public totalSupply = 0;
-    uint256 public currentlyInCirculation = 0;
-
-    address private controller;
-
-    address private stakeAddress;
-    
     event FallbackData(bytes _data);
     event Transfer(address indexed from, address indexed to, uint value, bytes indexed data);
 

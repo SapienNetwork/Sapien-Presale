@@ -76,7 +76,7 @@ contract SPNStorage {
 
     }
 
-    function decreasedUnstakedSPNBalance(address _who, uint256 _amount) onlyAllowedContracts {
+    function decreaseUnstakedSPNBalance(address _who, uint256 _amount) onlyAllowedContracts {
 
         require(_amount > 0);
         require(_who != address(0));

@@ -2,7 +2,7 @@ pragma solidity ^0.4.18;
 
 import "contracts/libraries/SafeMath.sol";
 import "contracts/Owned.sol";
-import "contracts/SapienStaking.sol";
+import "contracts/interfaces/SapienStakingInterface.sol";
 import "contracts/storage/SPNStorage.sol";
 import "contracts/interfaces/ERC223.sol";
 
@@ -12,6 +12,18 @@ contract SapienToken is ERC223 {
 
     Owned private owned;
     SPNStorage _storage;
+
+    string public name = "SAPIEN COIN";
+    string public symbol = "SPN";
+
+    uint256 public decimals = 18;
+    uint256 internal canStake = 0;
+    uint256 public totalSupply = 0;
+    uint256 public currentlyInCirculation = 0;
+
+    address internal controller;
+
+    address internal stakeAddress;
 
     modifier onlyAllowedAddresses {
         require(msg.sender == owned.getOwner() || controller == msg.sender);
@@ -41,14 +53,14 @@ contract SapienToken is ERC223 {
     function transfer(address _to, uint256 _value, bytes _data) public returns (bool) {
     
       require(_to != address(0));
-      require(_value <= balances[msg.sender]);
+      require(_value <= _storage.getUnstakedBalance(msg.sender));
       require(_storage != SPNStorage(0));
 
       if(_to == stakeAddress && canStake == 1) {
 
-          _storage.decreaseUnstakedSPNBalance(_from, _value);
+          _storage.decreaseUnstakedSPNBalance(msg.sender, _value);
 
-          SapienStakingUInterface receiver = SapienStakingInterface(_to);
+          SapienStakingInterface receiver = SapienStakingInterface(_to);
           receiver.tokenFallback(msg.sender, _value, _data);
         
           currentlyInCirculation = currentlyInCirculation.sub(_value);
@@ -144,7 +156,7 @@ contract SapienToken is ERC223 {
         
         require(_storage != SPNStorage(0));
         
-        return _storage.getUnstakedBalance[_owner];
+        return _storage.getUnstakedBalance(_owner);
         
     }
 
@@ -152,7 +164,7 @@ contract SapienToken is ERC223 {
 
         require(_storage != SPNStorage(0));
 
-        _storage.increaseUnstakedSPNBalance(_to, _value);
+        _storage.increaseUnstakedSPNBalance(_to, _amount);
 
     }
 

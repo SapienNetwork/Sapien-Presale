@@ -1,21 +1,63 @@
 pragma solidity ^0.4.18;
 
 import "contracts/Owned.sol";
-import "contracts/TokenController.sol";
-import "contracts/DynamicCrowdsale.sol";
+import "contracts/interfaces/TokenControllerInterface.sol";
+import "contracts/interfaces/DynamicCrowdsaleInterface.sol";
 import "contracts/interfaces/SapienCrowdsaleInterface.sol";
+import "contracts/storage/CrowdsaleStorage.sol";
 import "contracts/libraries/SafeMath.sol";
 
 contract SapienCrowdsale is SapienCrowdsaleInterface {
 
     using SafeMath for uint256;
 
-    DynamicCrowdsaleInterface dynamic;
+    //The storage for this crowdsale; we keep storage and logic separated in case we want to
+    //upgrade this contract because of bugs, attacks etc
+    CrowdsaleStorage internal _storage;
+
+    //The contract interface which limits the amount of ether which can be sent at one time in the campaign
+    DynamicCrowdsaleInterface internal dynamic;
 
     //SPN token Controller
-    TokenControllerInterface public token;
+    TokenControllerInterface internal token;
 
+    //Contract which dictates who owns this campaign
     Owned private owned;
+
+    //address where funds are collected
+    address internal wallet;
+
+    //for escape hatch; if 0, all functions can be used; if 1, only some functions can be used
+    uint256 internal blockAttack = 0;
+
+     //maximum gas price for contribution transactions
+    uint256 public constant MAX_GAS_PRICE = 500000;
+
+    //start and end block where investments are allowed (both inclusive)
+    uint256 public startBlock;
+    uint256 public endBlock;
+
+    //how many token units a buyer gets per wei
+    uint256 public rate;
+
+    //amount of raised money in wei
+    uint256 public weiRaised;
+
+    //hard cap, campaign ends after reached
+    uint256 public weiCap;
+
+    //how much Ether an investor can actually invest in the crowdsale; if 0, any investor can send as much Ether as they want
+    uint256 public investorLimit = 0;
+
+    //allows for owner to pause the campaign if needed
+    bool public paused;
+
+    //investment milestones for participants in the crowdsale 
+    //(ex: 33 eth, 100 eth, 500 eth, 1000 eth and 2000 eth)
+    //used to determine bonuses
+
+    mapping(uint256 => uint256) public bonusMilestones;
+    mapping(uint256 => uint256) public bonusRates;
 
     modifier afterDeadline() {
 
@@ -24,6 +66,7 @@ contract SapienCrowdsale is SapienCrowdsaleInterface {
 
     }
 
+    //Used when we want to block the majority of functions from being called
     modifier hatch() {
 
         require(blockAttack == 0);
@@ -31,11 +74,13 @@ contract SapienCrowdsale is SapienCrowdsaleInterface {
 
     }
 
+    //Check if we paused campaign
     modifier notPaused() {
         require(!paused);
         _;
     }
 
+    //Check that campaign didn't end in order to allow refunds
     modifier refundCondition() {
 
         require(block.number < endBlock);
@@ -43,14 +88,14 @@ contract SapienCrowdsale is SapienCrowdsaleInterface {
 
     }
 
-    // verifies that gas price is below max gas price (prevents "cutting in line")
+    //verifies that gas price is below max gas price (prevents "cutting in line")
     modifier validGasPrice() {
         require(tx.gasprice <= MAX_GAS_PRICE);
         _;
     }
 
-    /// @dev `owner` is the only address that can call a function with this
-    /// modifier
+    ///@dev `owner` is the only address that can call a function with this
+    ///modifier
     modifier onlyOwner() {
         require(msg.sender == owned.getOwner());
         _;
@@ -67,7 +112,7 @@ contract SapienCrowdsale is SapienCrowdsaleInterface {
 
     }
 
-    function initialize(uint256 _startBlock, uint256 _endBlock, uint256 _rate, address _wallet, uint256 _cap, address _token) onlyOwner hatch {
+    function initialize(uint256 _startBlock, uint256 _endBlock, uint256 _rate, address _wallet, uint256 _cap, address _token, address _storageAddress) onlyOwner hatch {
 
         require(_startBlock >= block.number);
         require(_endBlock >= _startBlock);
@@ -82,6 +127,7 @@ contract SapienCrowdsale is SapienCrowdsaleInterface {
         wallet = _wallet;
         weiCap = _cap;
         token = TokenControllerInterface(_token);
+        _storage = CrowdsaleStorage(_storageAddress);
 
     }
 
@@ -103,6 +149,12 @@ contract SapienCrowdsale is SapienCrowdsaleInterface {
 
     }
 
+    function changeCrowdsaleStorage(address _storageAddress) public onlyOwner hatch {
+
+        _storage = CrowdsaleStorage(_storageAddress);
+
+    }
+
     // Pauses the contribution if there is any issue
     function pauseContribution() public onlyOwner {
         paused = true;
@@ -113,7 +165,7 @@ contract SapienCrowdsale is SapienCrowdsaleInterface {
         paused = false;
     }
 
-    function switchSapienToken(address _token) onlyOwner {
+    function switchTokenController(address _token) onlyOwner {
 
         token = TokenControllerInterface(_token);
 
@@ -125,9 +177,9 @@ contract SapienCrowdsale is SapienCrowdsaleInterface {
 
     }
 
-    // fallback function can be used to buy tokens
-    function () payable {
-        buyTokens(msg.sender);
+    // use only official function to buy tokens
+    function () {
+        revert();
     }
 
     function limitPerInvestor(uint256 limit) public onlyOwner hatch {
@@ -142,13 +194,18 @@ contract SapienCrowdsale is SapienCrowdsaleInterface {
 
     }
 
-    function buyTokens(address beneficiary) payable validGasPrice hatch {
+    function buyTokens() public payable validGasPrice hatch {
         
-        require(beneficiary != 0x0);
         require(msg.value > 0);
+        require(_storage != CrowdsaleStorage(0));
 
         uint256 allowed = 0;
         
+        /**
+        * Check if we set a dynamic ceiling for the crowdsale
+        * If yes, see how much an investor can invest at this stage
+        * If no, just get the invested amount and continue 
+        */
         if (dynamic != address(0)) {
 
             allowed = dynamic.allowedInvestment(msg.value);
@@ -159,38 +216,49 @@ contract SapienCrowdsale is SapienCrowdsaleInterface {
                 
         }
 
-        if (limitPerInvestor != 0) {
+        /**
+        * Check if we have an overall limit per investor
+        * If yes, see if the investor's sum gets past the limit, and if so,
+        * set the investor's total investment to max
+        */
 
-            require(investorInfo[msg.sender].amountOfWeiInvested < limitPerInvestor);
+        if (investorLimit != 0) {
 
-            if (allowed.add(investorInfo[msg.sender].amountOfWeiInvested) > limitPerInvestor) {
+            uint256 storageWei = _storage.getInvestorWei(msg.sender);
 
-                allowed = limitPerInvestor.sub(investorInfo[msg.sender].amountOfWeiInvested);
+            require(storageWei < investorLimit);
+
+            if (allowed.add(storageWei) > investorLimit) {
+
+                allowed = investorLimit.sub(storageWei);
 
             }
 
         }
 
+        //Make necessary checks: the campaign didn't end, the investor is not a contract etc
         require(validPurchase(msg.sender, allowed));
 
+        //Compute the bonus for each investment
         uint256 bonusRate = getBonusRate(allowed);
 
-        // calculate token amount to be created
+        //Calculate token amount to be created
         uint256 tokens = bonusRate.mul(allowed);
 
         bonusRate = 0;
 
-        // update state
+        //Add the investment to wei raised
         weiRaised = weiRaised.add(allowed);
 
-        investorInfo[msg.sender].amountOfWeiInvested = investorInfo[msg.sender].amountOfWeiInvested.add(allowed);
+        //Update investor's info
+        _storage.addInvestment(msg.sender, allowed, tokens);
 
-        investorInfo[msg.sender].calculatedTokens = investorInfo[msg.sender].calculatedTokens.add(tokens);
-
-        TokenPurchase(msg.sender, beneficiary, allowed, tokens);
+        //Broadcast event
+        TokenPurchase(msg.sender, allowed, tokens);
 
         tokens = 0;
 
+        //Send back ether if the investor sent above the limit
         if (msg.value != allowed) {
 
             msg.sender.transfer(msg.value.sub(allowed));
@@ -199,7 +267,7 @@ contract SapienCrowdsale is SapienCrowdsaleInterface {
         
     }
 
-    function getBonusRate(uint256 weiAmount) internal returns (uint256) {
+    function getBonusRate(uint256 weiAmount) internal constant returns (uint256) {
 
         uint256 bonus = rate;
 
@@ -229,23 +297,19 @@ contract SapienCrowdsale is SapienCrowdsaleInterface {
 
     }
 
-
     function refundInvestment(uint256 weiAmount) public refundCondition {
 
-        require(investorInfo[msg.sender].amountOfWeiInvested >= weiAmount);
+        require(_storage != CrowdsaleStorage(0));
+        require(_storage.getInvestorWei(msg.sender) >= weiAmount);
+        require(weiAmount > 0);
 
-        investorInfo[msg.sender].amountOfWeiInvested = investorInfo[msg.sender].amountOfWeiInvested.sub(weiAmount);
-
-        investorInfo[msg.sender].calculatedTokens = 
-            investorInfo[msg.sender].calculatedTokens.sub(getBonusRate(weiAmount));
+        _storage.withdrawInvestment(msg.sender, weiAmount, getBonusRate(weiAmount));
 
         weiRaised = weiRaised.sub(weiAmount);
 
         msg.sender.transfer(weiAmount);
 
     }
-
-    // send ether to the fund collection wallet
 
     function safeWithdrawal() public afterDeadline onlyOwner hatch {
         
@@ -257,7 +321,7 @@ contract SapienCrowdsale is SapienCrowdsaleInterface {
 
             if (wallet.send(funds)) {
 
-                Transferred(funds);
+                TransferredToWallet(funds);
 
             } else {
 
@@ -273,29 +337,41 @@ contract SapienCrowdsale is SapienCrowdsaleInterface {
 
     function distributeTokens(address investor) public onlyOwner afterDeadline {
 
-        require(investorInfo[investor].amountOfWeiInvested > 0);
+        require(_storage != CrowdsaleStorage(0));
 
-        uint256 tokensToSend = investorInfo[investor].calculatedTokens;
+        uint256 investorWei = _storage.getInvestorWei(investor);
 
-        investorInfo[investor].calculatedTokens = 0;
+        require(investor != address(0));
+        require(investorWei > 0);
+
+        uint256 tokensToSend = _storage.getInvestorTokens(investor);
+
+        _storage.withdrawInvestment(investor, investorWei, tokensToSend);
 
         token.allocateTokens(investor, tokensToSend);
+
+        AllocateTokens(msg.sender, investor, tokensToSend);
 
     }
 
     function claimTokens() public afterDeadline {
 
-        require(investorInfo[msg.sender].amountOfWeiInvested > 0);
+        require(_storage != CrowdsaleStorage(0));
 
-        uint256 tokensToSend = investorInfo[msg.sender].calculatedTokens;
+        uint256 investorWei = _storage.getInvestorWei(msg.sender);
 
-        investorInfo[msg.sender].calculatedTokens = 0;
+        require(investorWei > 0);
+
+        uint256 tokensToSend = _storage.getInvestorTokens(msg.sender);
+
+        _storage.withdrawInvestment(msg.sender, investorWei, tokensToSend);
 
         token.allocateTokens(msg.sender, tokensToSend);
 
+        AllocateTokens(msg.sender, msg.sender, tokensToSend);
+
     }
 
-    // @return true if the transaction can buy tokens
     function validPurchase(address investor, uint256 allowed) internal constant returns (bool) {
         uint256 current = block.number;
         bool withinPeriod = current >= startBlock && current <= endBlock;

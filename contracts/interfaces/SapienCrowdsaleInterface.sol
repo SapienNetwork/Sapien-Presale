@@ -2,50 +2,6 @@ pragma solidity ^0.4.18;
 
 contract SapienCrowdsaleInterface {
 
-    // maximum gas price for contribution transactions
-    uint256 public constant MAX_GAS_PRICE = 50000000000;
-
-    // start and end block where investments are allowed (both inclusive)
-    uint256 public startBlock;
-    uint256 public endBlock;
-
-    // how many token units a buyer gets per wei
-    uint256 public rate;
-
-    // amount of raised money in wei
-    uint256 public weiRaised;
-
-    // hard cap, campaign ends after reached
-    uint256 public weiCap;
-
-    //for escape hatch; if 0, all functions can be used; if 1, only some functions can be used
-    uint256 private blockAttack = 0; 
-
-    //how much Ether an investor can actually invest in the crowdsale; if 0, any investor can send as much Ether as they want
-    uint256 investorLimit = 0;
-    
-    // address where funds are collected
-    address private wallet;
-
-     //allows for owner to pause the campaign if needed
-    bool public paused;
-
-    //investment milestones for participants in the crowdsale 
-    //(ex: 33 eth, 100 eth, 500 eth, 1000 eth and 2000 eth)
-    //used to determine bonuses
-
-    mapping(uint256 => uint256) public bonusMilestones;
-    mapping(uint256 => uint256) public bonusRates;
-
-    struct Investor {
-
-        uint256 amountOfWeiInvested;
-        uint256 calculatedTokens;
-
-    }
-
-    mapping(address => Investor) public investorInfo;
-
      /**
      * event for token purchase logging
      * @param purchaser who paid for the tokens
@@ -53,48 +9,78 @@ contract SapienCrowdsaleInterface {
      * @param value weis paid for purchase
      * @param amount amount of tokens purchased
      */
-    event TokenPurchase(address indexed purchaser, address indexed beneficiary, uint256 value, uint256 amount);
+    event TokenPurchase(address indexed purchaser, uint256 value, uint256 amount);
 
-    event Transferred(uint256 amount);
+    /**
+    * @dev Triggered when we want to withdraw funds to wallet
+    */
+    event TransferredToWallet(uint256 amount);
 
+    /**
+    * Called when investor tokens are allocated
+    */
+    event AllocateTokens(address sender, address beneficiary, uint256 amount);
+
+    //Changing the owner of the contract
     function changeOwned(address _owned) public;
 
+    //Initialize a new crowdsale
     function initialize(uint256 _startBlock, uint256 _endBlock, uint256 _rate, address _wallet, uint256 _cap, address _token) public;
 
+    //Change a certain milestone bonus
     function changeBonusMilestone(uint256 position, uint256 newValue) public;
 
     function changeBonusRate(uint256 position, uint256 newValue) public;
 
+    //Change the dynamic contract which puts limits for whales
     function changeDynamic(address _dynamic) public;
 
+    //Change crowdsale's storage contract
+    function changeCrowdsaleStorage(address _storageAddress) public;
+
+    //Pause campaign in case of bug/attack/anything else
     function pauseContribution() public;
 
+    //Resume campaign
     function resumeContribution();
 
-    function switchSapienToken(address _token);
+    //Change the token controller that allocates the preminted SPN
+    function switchTokenController(address _token);
 
+    //Change the wallet where we send the funds from investors
     function switchWallet(address _wallet);
 
+    //Ether limit per investor; need KYC for each investor to make sure we can limit them
     function limitPerInvestor(uint256 limit) public;
 
+    //Change how many SPN we offer for investments of under $10K
     function changeBaseRate(uint256 baseRate);
 
-    function buyTokens(address beneficiary) payable;
+    //Used by investors to buy tokens
+    function buyTokens() public payable;
 
-    function getBonusRate(uint256 weiAmount) internal returns (uint256);
+    //How much bonus does one investor get for the ether sent
+    function getBonusRate(uint256 weiAmount) internal constant returns (uint256);
 
+    //Called by investors when they want to withdraw their investment; can be used before crowdsale ends
     function refundInvestment(uint256 weiAmount) public;
 
+    //Withdrawing the ether gathered in a wallet after the campaign ends
     function safeWithdrawal() public;
 
+    //Used by owner to distribute tokens to investors in case someone forgets to take their tokens
     function distributeTokens(address investor) public;
 
+    //Used by investors to get their tokens after campaign ends
     function claimTokens() public;
 
+    //Check if investor is qualified to invest
     function validPurchase(address investor, uint256 allowed) internal constant returns (bool);
 
+    //Check if investor is a contract; if it is a contract, we will block them
     function isContract(address _addr) internal constant returns (bool is_contract);
 
+    //Block the majority of functions from being called in case of attack/vulnerability/etc
     function escapeHatch() public;
 
 }
