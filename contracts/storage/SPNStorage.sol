@@ -1,5 +1,7 @@
 pragma solidity ^0.4.18;
 
+/// @author Stefan Ionescu - <codrinionescu@yahoo.com>
+
 import "contracts/Owned.sol";
 import "contracts/libraries/SafeMath.sol";
 

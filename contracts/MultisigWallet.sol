@@ -214,16 +214,16 @@ contract MultiSigWallet is MultisigWalletInterface {
 
         if (isConfirmed(transactionId)) {
 
-            Transaction tx = transactions[transactionId];
-            tx.executed = true;
+            Transaction storage transaction = transactions[transactionId];
+            transaction.executed = true;
 
-            if (tx.destination.call.value(tx.value)(tx.data))
+            if (transaction.destination.call.value(transaction.value)(transaction.data))
                 Execution(transactionId);
 
             else {
 
                 ExecutionFailure(transactionId);
-                tx.executed = false;
+                transaction.executed = false;
 
             }
         }

@@ -1,17 +1,19 @@
 pragma solidity ^0.4.18;
 
+/// @author Stefan Ionescu - <codrinionescu@yahoo.com>
+
 import "contracts/Owned.sol";
 import "contracts/SapienToken.sol";
+import "contracts/interfaces/SapienTokenInterface.sol";
+import "contracts/interfaces/TokenControllerInterface.sol";
 
-contract TokenController {
+contract TokenController is TokenControllerInterface {
 
-    ERC223 private sapienToken;
+    SapienTokenInterface private sapienToken;
     Owned private owned;
 
     address private crowdsale;
 
-    /// @dev `owner` is the only address that can call a function with this
-    /// modifier
     modifier acceptedOwners() {
         require(msg.sender == owned.getOwner() || crowdsale == msg.sender);
         _;
@@ -26,7 +28,7 @@ contract TokenController {
 
     function TokenController(address _sapien, address _owned) {
 
-        sapienToken = ERC223(_sapien);
+        sapienToken = SapienTokenInterface(_sapien);
         owned = Owned(_owned);
     
     }
@@ -37,9 +39,9 @@ contract TokenController {
 
     }
 
-    function changeBasicToken(address _sapien) public onlyOwner {
+    function changeSPNToken(address _sapien) public onlyOwner {
 
-        sapienToken = ERC223(_sapien);
+        sapienToken = SapienTokenInterface(_sapien);
 
     }
 
@@ -55,12 +57,6 @@ contract TokenController {
 
     }
 
-    /**
-     * @dev Function to mint new tokens, only the controller (initially the crowdsale contract) can call this
-     * @param _to The address that will recieve the minted tokens.
-     * @param _amount The amount of tokens to mint.
-     * @return A boolean that indicates if the operation was successful.
-     */
     function allocateTokens(address _to, uint256 _amount) public acceptedOwners returns (bool) {
         sapienToken.increaseCirculation(_amount);
         sapienToken.addToBalance(_to, _amount);

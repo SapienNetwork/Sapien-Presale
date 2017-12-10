@@ -1,5 +1,7 @@
 pragma solidity ^0.4.18;
 
+/// @author Stefan Ionescu - <codrinionescu@yahoo.com>
+
 import "contracts/Owned.sol";
 import "contracts/interfaces/TokenControllerInterface.sol";
 import "contracts/interfaces/DynamicCrowdsaleInterface.sol";
@@ -101,7 +103,7 @@ contract SapienCrowdsale is SapienCrowdsaleInterface {
         _;
     }
 
-    function SapienCrowdsale(address _owned, address utilsAddress) {
+    function SapienCrowdsale(address _owned) {
         paused = false;
         owned = Owned(_owned);
     }
@@ -188,7 +190,7 @@ contract SapienCrowdsale is SapienCrowdsaleInterface {
 
     }
 
-    function changeBaseRate(uint256 baseRate) onlyOwner hatch {
+    function changeBaseRate(uint256 baseRate) public onlyOwner hatch {
 
         rate = baseRate;
 
@@ -243,7 +245,7 @@ contract SapienCrowdsale is SapienCrowdsaleInterface {
         uint256 bonusRate = getBonusRate(allowed);
 
         //Calculate token amount to be created
-        uint256 tokens = bonusRate.mul(allowed);
+        uint256 tokens = bonusRate.mul(allowed / 10**18);
 
         bonusRate = 0;
 

@@ -1,5 +1,7 @@
 pragma solidity ^0.4.18;
 
+/// @author Stefan Ionescu - <codrinionescu@yahoo.com>
+
 import "contracts/Owned.sol";
 import "contracts/interfaces/DynamicCrowdsaleInterface.sol";
 
@@ -18,8 +20,6 @@ contract DynamicCrowdsale is DynamicCrowdsaleInterface {
 
     }
 
-    /// @dev `owner` is the only address that can call a function with this
-    /// modifier
     modifier onlyOwner() {
         require(msg.sender == owned.getOwner());
         _;
@@ -43,12 +43,12 @@ contract DynamicCrowdsale is DynamicCrowdsaleInterface {
 
     }
 
-    function addMilestone(uint256 block, uint256 investment) public onlyOwner {
+    function addMilestone(uint256 blockNR, uint256 investment) public onlyOwner {
 
-        require(stages[maxPosition].blockNumber < block);
+        require(stages[maxPosition].blockNumber < blockNR);
         require(stages[maxPosition].permittedInvestment > investment);
 
-        var stage = Stage(block, investment);
+        var stage = Stage(blockNR, investment);
 
         stages.push(stage);
 
@@ -56,11 +56,11 @@ contract DynamicCrowdsale is DynamicCrowdsaleInterface {
 
     }
 
-    function deleteMilestone(uint256 position) public onlyOwner {
+    function deleteMilestone(uint256 _position) public onlyOwner {
 
-        delete stages[position];
+        delete stages[_position];
 
-        for (uint i = position; i < maxPosition - 1; i++) {
+        for (uint i = _position; i < maxPosition - 1; i++) {
 
             stages[i] = stages[i + 1];
 

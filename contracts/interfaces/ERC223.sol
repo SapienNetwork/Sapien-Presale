@@ -5,6 +5,7 @@ contract ERC223 {
     event FallbackData(bytes _data);
     event Transfer(address indexed from, address indexed to, uint value, bytes indexed data);
 
+    //Called when contract receives tokens
     function tokenFallback(address _from, uint _value, bytes _data) public;
 
     /**
@@ -14,9 +15,8 @@ contract ERC223 {
     */
     function transfer(address _to, uint256 _value, bytes _data) public returns (bool);
 
+    //Change the owner of the contract
     function changeOwned(address _owned) public;
-
-    function changeController(address _controller) public;
 
     // Function to access name of token .
     function name() public constant returns (string _name);
@@ -30,21 +30,11 @@ contract ERC223 {
     // Function to access total supply of tokens .
     function getTotalSupply() public constant returns (uint256);
 
+    //Check if an address is from a contract
     function isContract(address _addr) private constant returns (bool is_contract);
 
+    //Change the storage where we manage unstaked SPN
     function changeSPNStorage(address _storageAddr);
-
-    /** 
-    * Allow people to start staking tokens
-    */
-
-    function enableStaking(address _stake);
-
-    /**
-    *@dev Disable staking in case of attack/vulnerability/etc
-    */
-
-    function disableStaking();
 
     /**
     * @dev Gets the balance of the specified address.
@@ -53,13 +43,6 @@ contract ERC223 {
     */
     function balanceOf(address _owner) public constant returns (uint256 balance);
 
-    function addToBalance(address _to, uint256 _amount) public;
-
-    function increaseCirculation(uint256 _amount) public;
-
-    //function that is called when transaction target is an address
-    function transferToAddress(address _to, uint _value, bytes _data) internal returns (bool success);
-
-    function upgrade(address newContract) public;
+    function escapeHatch() public;
 
 }

@@ -1,8 +1,10 @@
 pragma solidity ^0.4.18;
 
+/// @author Stefan Ionescu - <codrinionescu@yahoo.com>
+
 import "contracts/Owned.sol";
 import "contracts/libraries/StringUtils.sol";
-import "contracts/interfaces/ERC223.sol";
+import "contracts/interfaces/SapienTokenInterface.sol";
 import "contracts/storage/SPNStorage.sol";
 import "contracts/libraries/SafeMath.sol";
 import "contracts/interfaces/SapienStakingInterface.sol";
@@ -57,7 +59,7 @@ contract SapienStaking is SapienStakingInterface {
 
           _storage.decreaseStakedSPNBalance(msg.sender, _value);
 
-          ERC223 receiver = ERC223(_to);
+          SapienTokenInterface receiver = SapienTokenInterface(_to);
           receiver.tokenFallback(msg.sender, _value, _data);
 
           Transfer(msg.sender, _to, _value, _data);

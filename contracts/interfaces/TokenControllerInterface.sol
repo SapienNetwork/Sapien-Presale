@@ -1,11 +1,13 @@
 pragma solidity ^0.4.18;
 
+/// @author Stefan Ionescu - <codrinionescu@yahoo.com>
+
 contract TokenControllerInterface {
 
     event Allocate(address indexed to, uint256 amount);
 
     //Change the contract where we store token balances
-    function changeBasicToken(address _sapien) public;
+    function changeSPNToken(address _sapien) public;
 
     //Change the owner of this contract
     function changeOwned(address _owned) public;

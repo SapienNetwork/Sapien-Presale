@@ -1,12 +1,14 @@
 pragma solidity ^0.4.18;
 
+/// @author Stefan Ionescu - <codrinionescu@yahoo.com>
+
 import "contracts/libraries/SafeMath.sol";
 import "contracts/Owned.sol";
 import "contracts/interfaces/SapienStakingInterface.sol";
 import "contracts/storage/SPNStorage.sol";
-import "contracts/interfaces/ERC223.sol";
+import "contracts/interfaces/SapienTokenInterface.sol";
 
-contract SapienToken is ERC223 {
+contract SapienToken is SapienTokenInterface {
   
     using SafeMath for uint256;
 
@@ -20,6 +22,7 @@ contract SapienToken is ERC223 {
     uint256 internal canStake = 0;
     uint256 public totalSupply = 0;
     uint256 public currentlyInCirculation = 0;
+    uint256 blockAttack = 0;
 
     address internal controller;
 
@@ -37,6 +40,13 @@ contract SapienToken is ERC223 {
 
     }
 
+    modifier hatch() {
+
+        require(blockAttack == 0);
+        _;
+
+    }
+
     function tokenFallback(address _from, uint _value, bytes _data) public {
     
       require(msg.sender == stakeAddress);
@@ -50,7 +60,7 @@ contract SapienToken is ERC223 {
     
     }
 
-    function transfer(address _to, uint256 _value, bytes _data) public returns (bool) {
+    function transfer(address _to, uint256 _value, bytes _data) public hatch returns (bool) {
     
       require(_to != address(0));
       require(_value <= _storage.getUnstakedBalance(msg.sender));
@@ -136,7 +146,7 @@ contract SapienToken is ERC223 {
 
     }
 
-    function enableStaking(address _stake) public onlyOwner {
+    function enableStaking(address _stake) public hatch onlyOwner {
 
         canStake = 1;
 
@@ -160,7 +170,7 @@ contract SapienToken is ERC223 {
         
     }
 
-    function addToBalance(address _to, uint256 _amount) public onlyAllowedAddresses {
+    function addToBalance(address _to, uint256 _amount) public hatch onlyAllowedAddresses {
 
         require(_storage != SPNStorage(0));
 
@@ -168,7 +178,7 @@ contract SapienToken is ERC223 {
 
     }
 
-    function increaseCirculation(uint256 _amount) public onlyAllowedAddresses {
+    function increaseCirculation(uint256 _amount) public hatch onlyAllowedAddresses {
 
         require(currentlyInCirculation.add(_amount) <= totalSupply);
 
@@ -176,7 +186,7 @@ contract SapienToken is ERC223 {
 
     }
 
-    function transferToAddress(address _to, uint _value, bytes _data) internal returns (bool success) {
+    function transferToAddress(address _to, uint _value, bytes _data) internal hatch returns (bool success) {
     
         if (balanceOf(msg.sender) < _value) 
             revert();
@@ -188,6 +198,20 @@ contract SapienToken is ERC223 {
         Transfer(msg.sender, _to, _value, _data);
         return true;
 
+    }
+
+    function escapeHatch() public onlyOwner {
+
+        if (blockAttack == 0) {
+
+            blockAttack = 1;
+
+        } else {
+
+            blockAttack = 0;
+
+        }
+            
     }
 
 }

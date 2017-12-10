@@ -1,5 +1,7 @@
 pragma solidity ^0.4.15;
 
+/// @author Stefan Ionescu - <codrinionescu@yahoo.com>
+
 contract Owned {
 
     address private owner;

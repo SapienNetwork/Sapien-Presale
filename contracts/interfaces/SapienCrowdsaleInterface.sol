@@ -1,11 +1,12 @@
 pragma solidity ^0.4.18;
 
+/// @author Stefan Ionescu - <codrinionescu@yahoo.com>
+
 contract SapienCrowdsaleInterface {
 
      /**
      * event for token purchase logging
      * @param purchaser who paid for the tokens
-     * @param beneficiary who got the tokens
      * @param value weis paid for purchase
      * @param amount amount of tokens purchased
      */
@@ -19,7 +20,7 @@ contract SapienCrowdsaleInterface {
     /**
     * Called when investor tokens are allocated
     */
-    event AllocateTokens(address sender, address beneficiary, uint256 amount);
+    event AllocateTokens(address sender, address who, uint256 amount);
 
     //Changing the owner of the contract
     function changeOwned(address _owned) public;
