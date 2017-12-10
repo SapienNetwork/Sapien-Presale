@@ -13,7 +13,7 @@ contract('SapienCrowdsale', function(accounts) {
     const startBlock = web3.eth.blockNumber + 10;
     const endBlock = startBlock + 300;
     const rate = new web3.BigNumber(4000);
-    const cap = new web3.BigNumber(73000000000000000000000); //73k ether hardcap
+    const cap = new web3.BigNumber(2400000000000000000000); //2400 ether hardcap
 
     let Controller, wallet, _storage, crowdsale;
 
@@ -51,7 +51,7 @@ contract('SapienCrowdsale', function(accounts) {
         await crowdsale.initialize(startBlock, endBlock, rate, wallet.address, cap, Controller.address, _storage.address, {from: accounts[0], gas: 900000});
        
         await assertFail(async function() {
-            await crowdsale.buyTokens(accounts[1], { value: web3.toWei(0.5), from: accounts[1] });
+            await crowdsale.buyTokens({ value: web3.toWei(0.5), from: accounts[1] });
         });
     });
 
@@ -73,18 +73,45 @@ contract('SapienCrowdsale', function(accounts) {
     
         await crowdsale.pauseContribution();
         await assertFail(async function() {
-            await crowdsale.buyTokens(accounts[1], { value: web3.toWei(0.5), from: accounts[1] });
+            await crowdsale.buyTokens({ value: web3.toWei(0.5), from: accounts[1] });
         });
     });
 
     it("Checks that anyone can buy tokens after crowdsale has started", async function() {
         await crowdsale.initialize(web3.eth.blockNumber, endBlock, rate, wallet.address, cap, Controller.address, _storage.address, {from: accounts[0], gas: 900000});
        
-        await crowdsale.buyTokens(accounts[1], { value: web3.toWei(0.5), from: accounts[1] });
+        await crowdsale.buyTokens({ value: web3.toWei(0.5), from: accounts[1] });
 
         let boughtTokens = _storage.getInvestorTokens(accounts[1], {from: accounts[1]});
 
         assert.equal(boughtTokens, 2000);
+    });
+
+    it("Checks that contracts cannot buy tokens", async function() {
+
+        await crowdsale.initialize(web3.eth.blockNumber, endBlock, rate, wallet.address, cap, Controller.address, _storage.address, {from: accounts[0], gas: 900000});
+       
+        await Controller.transfer({from: accounts[1], value: web3.toWei(0.5)});
+
+        await assertFail(async function() {
+            await crowdsale.buyTokens({ value: web3.toWei(0.4), from: Controller });
+        }
+
+    });
+
+    it("Checks that investors can get a refund", async function() {
+        await crowdsale.initialize(web3.eth.blockNumber, endBlock, rate, wallet.address, cap, Controller.address, _storage.address, {from: accounts[0], gas: 900000});
+       
+        await crowdsale.buyTokens(accounts[1], { value: web3.toWei(0.5), from: accounts[1] });
+
+        let investment = await _storage.getInvestorWei(accounts[1], {from: accounts[0]});
+
+        await crowdsale.refundInvestment(investment, {from: accounts[1]});
+
+        investment = await _storage.getInvestorWei(accounts[1], {from: accounts[0]});        
+
+        assert.equal(investment, 0);
+
     });
 
     //NEED TO MAKE getBonusRate PUBLIC TO PASS TEST
