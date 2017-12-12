@@ -1,12 +1,13 @@
 let TokenController = artifacts.require('contracts/TokenController.sol');
 let Owned = artifacts.require('contracts/Owned.sol');
-let SapienToken = artifacts.require('node_modules/zeppelin-solidity/contracts/token/SapienToken.sol');
+let SapienToken = artifacts.require('contracts/SapienToken.sol');
 
 contract('TokenController', function(accounts) {
 
     it("SapienToken deployed with SPN symbol", async function() {
         let SPN = await SapienToken.new(TokenController.address, Owned.address);
         let symbol = await SPN.symbol.call();
+
         assert.equal(symbol, 'SPN', 'Symbol name is not SPN');
     });
 

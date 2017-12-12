@@ -1,4 +1,4 @@
-pragma solidity ^0.4.18;
+pragma solidity ^0.4.15;
 
 /// @author Stefan Ionescu - <codrinionescu@yahoo.com>
 
@@ -26,7 +26,7 @@ contract SapienCrowdsaleInterface {
     function changeOwned(address _owned) public;
 
     //Initialize a new crowdsale
-    function initialize(uint256 _startBlock, uint256 _endBlock, uint256 _rate, address _wallet, uint256 _cap, address _token) public;
+    function initialize(uint256 _startBlock, uint256 _endBlock, uint256 _rate, address _wallet, uint256 _cap, address _token, address _storageAddress) public;
 
     //Change a certain milestone bonus
     function changeBonusMilestone(uint256 position, uint256 newValue) public;
@@ -43,19 +43,19 @@ contract SapienCrowdsaleInterface {
     function pauseContribution() public;
 
     //Resume campaign
-    function resumeContribution();
+    function resumeContribution() public;
 
     //Change the token controller that allocates the preminted SPN
-    function switchTokenController(address _token);
+    function switchTokenController(address _token) public;
 
     //Change the wallet where we send the funds from investors
-    function switchWallet(address _wallet);
+    function switchWallet(address _wallet) public;
 
     //Ether limit per investor; need KYC for each investor to make sure we can limit them
     function limitPerInvestor(uint256 limit) public;
 
     //Change how many SPN we offer for investments of under $10K
-    function changeBaseRate(uint256 baseRate);
+    function changeBaseRate(uint256 baseRate) public;
 
     //Used by investors to buy tokens
     function buyTokens() public payable;
@@ -76,7 +76,7 @@ contract SapienCrowdsaleInterface {
     function claimTokens() public;
 
     //Check if investor is qualified to invest
-    function validPurchase(address investor, uint256 allowed) internal constant returns (bool);
+    function validPurchase(address investor, uint256 allowed) internal returns (bool);
 
     //Check if investor is a contract; if it is a contract, we will block them
     function isContract(address _addr) internal constant returns (bool is_contract);

@@ -14,7 +14,7 @@ module.exports = async function(deployer, network, accounts) {
     const startBlock = web3.eth.blockNumber + 300;
     const endBlock = startBlock + 300;
     const rate = new web3.BigNumber(4000);
-    const cap = new web3.BigNumber(2400000000000000000000); //73k ether hardcap
+    const cap = new web3.BigNumber(2300000000000000000000); //2.3K ether hardcap
 
     const premintedTokens = 3 * 10 ** 9;
 
@@ -23,11 +23,11 @@ module.exports = async function(deployer, network, accounts) {
     deployer.deploy(MultisigWallet, [accounts[0], accounts[1], accounts[2]], 2, {from: accounts[2]});
     deployer.deploy(SapienToken, Owned.address, premintedTokens, {from: accounts[4]});
     deployer.deploy(TokenController, SapienToken.address, Owned.address, {from: accounts[1]});
-    deployer.deploy(SapienCrowdsale, Owned.address, {from: accounts[0], gas: 40900000});
-    deployer.deploy(SapienStaking, SapienToken.address, Owned.address, {from: accounts[1]});
+    deployer.deploy(SapienCrowdsale, Owned.address, {from: accounts[0], gas: 4000000});
     deployer.deploy(DynamicCrowdsale, Owned.address, {from: accounts[2]});
     deployer.deploy(CrowdsaleStorage, Owned.address, {from: accounts[2]});
     deployer.deploy(SPNStorage, Owned.address, {from: accounts[3]});
+    deployer.deploy(SapienStaking, SapienToken.address, Owned.address, {from: accounts[0], gas: 4000000});
 
     //set Crowdsale as current controller, allowing the crowdsale to mint new tokens
     await web3.eth.contract(TokenController.abi).at(TokenController.address)

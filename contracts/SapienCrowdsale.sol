@@ -1,4 +1,4 @@
-pragma solidity ^0.4.18;
+pragma solidity ^0.4.15;
 
 /// @author Stefan Ionescu - <codrinionescu@yahoo.com>
 
@@ -114,7 +114,7 @@ contract SapienCrowdsale is SapienCrowdsaleInterface {
 
     }
 
-    function initialize(uint256 _startBlock, uint256 _endBlock, uint256 _rate, address _wallet, uint256 _cap, address _token, address _storageAddress) onlyOwner hatch {
+    function initialize(uint256 _startBlock, uint256 _endBlock, uint256 _rate, address _wallet, uint256 _cap, address _token, address _storageAddress) public onlyOwner hatch {
 
         require(_startBlock >= block.number);
         require(_endBlock >= _startBlock);
@@ -163,17 +163,17 @@ contract SapienCrowdsale is SapienCrowdsaleInterface {
     }
 
     // Resumes the contribution
-    function resumeContribution() onlyOwner {
+    function resumeContribution() public onlyOwner {
         paused = false;
     }
 
-    function switchTokenController(address _token) onlyOwner {
+    function switchTokenController(address _token) public onlyOwner {
 
         token = TokenControllerInterface(_token);
 
     }
 
-    function switchWallet(address _wallet) onlyOwner {
+    function switchWallet(address _wallet) public onlyOwner {
 
         wallet = _wallet;
 
@@ -374,7 +374,7 @@ contract SapienCrowdsale is SapienCrowdsaleInterface {
 
     }
 
-    function validPurchase(address investor, uint256 allowed) internal constant returns (bool) {
+    function validPurchase(address investor, uint256 allowed) internal returns (bool) {
         uint256 current = block.number;
         bool withinPeriod = current >= startBlock && current <= endBlock;
         bool withinCap = weiRaised.add(allowed) <= weiCap;

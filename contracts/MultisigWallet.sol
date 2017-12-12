@@ -1,4 +1,4 @@
-pragma solidity ^0.4.18;
+pragma solidity ^0.4.15;
 
 import "contracts/interfaces/MultisigWalletInterface.sol";
 

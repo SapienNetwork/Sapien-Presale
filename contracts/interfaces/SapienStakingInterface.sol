@@ -1,14 +1,12 @@
-pragma solidity ^0.4.18;
+pragma solidity ^0.4.15;
 
 /// @author Stefan Ionescu - <codrinionescu@yahoo.com>
 
-import "contracts/interfaces/ERC223.sol";
+import "contracts/interfaces/BaseERC223.sol";
 
-contract SapienStakingInterface is ERC223 {
+contract SapienStakingInterface is BaseERC223 {
 
-    event Transfer(address indexed from, address indexed to, uint value, bytes indexed data);
     event Tipped(address _from, address _to, uint256 _amount);
-    event FallbackData(bytes _data);
     event MadeAnAction(address who, string action, uint256 amount);
 
     /**
