@@ -12,7 +12,7 @@ contract Owned {
         owner = msg.sender;
     }
 
-    function getOwner() public returns (address) {
+    function getOwner() public constant returns (address) {
 
         return owner;
 

@@ -30,7 +30,7 @@ contract SapienCrowdsale is SapienCrowdsaleInterface {
     address internal wallet;
 
     //for escape hatch; if 0, all functions can be used; if 1, only some functions can be used
-    uint256 internal blockAttack = 0;
+    uint256 public blockAttack = 0;
 
      //maximum gas price for contribution transactions
     uint256 public constant MAX_GAS_PRICE = 500000;
@@ -50,6 +50,8 @@ contract SapienCrowdsale is SapienCrowdsaleInterface {
 
     //how much Ether an investor can actually invest in the crowdsale; if 0, any investor can send as much Ether as they want
     uint256 public investorLimit = 0;
+
+    uint256 private oneEther = 10 ** 18;
 
     //allows for owner to pause the campaign if needed
     bool public paused;
@@ -163,17 +165,17 @@ contract SapienCrowdsale is SapienCrowdsaleInterface {
     }
 
     // Resumes the contribution
-    function resumeContribution() public onlyOwner {
+    function resumeContribution() public onlyOwner hatch {
         paused = false;
     }
 
-    function switchTokenController(address _token) public onlyOwner {
+    function switchTokenController(address _token) public onlyOwner hatch {
 
         token = TokenControllerInterface(_token);
 
     }
 
-    function switchWallet(address _wallet) public onlyOwner {
+    function switchWallet(address _wallet) public onlyOwner hatch {
 
         wallet = _wallet;
 
@@ -239,15 +241,19 @@ contract SapienCrowdsale is SapienCrowdsaleInterface {
         }
 
         //Make necessary checks: the campaign didn't end, the investor is not a contract etc
+     
+        require(allowed > 0);
         require(validPurchase(msg.sender, allowed));
 
         //Compute the bonus for each investment
         uint256 bonusRate = getBonusRate(allowed);
 
-        //Calculate token amount to be created
-        uint256 tokens = bonusRate.mul(allowed / 10**18);
+        uint256 getEtherAmount;
+      
+        getEtherAmount = uint(allowed) / uint(10**18);
 
-        bonusRate = 0;
+        //Calculate token amount to be created
+        uint256 tokens = bonusRate.mul(getEtherAmount);
 
         //Add the investment to wei raised
         weiRaised = weiRaised.add(allowed);
@@ -269,7 +275,7 @@ contract SapienCrowdsale is SapienCrowdsaleInterface {
         
     }
 
-    function getBonusRate(uint256 weiAmount) internal constant returns (uint256) {
+    function getBonusRate(uint256 weiAmount) public constant returns (uint256) {
 
         uint256 bonus = rate;
 
@@ -321,17 +327,15 @@ contract SapienCrowdsale is SapienCrowdsaleInterface {
 
         if (funds > 0) {
 
-            if (wallet.send(funds)) {
+            wallet.transfer(funds);
 
-                TransferredToWallet(funds);
+            TransferredToWallet(funds);
 
-            } else {
+        } else {
 
-                weiRaised = funds;
+            weiRaised = funds;
 
-                revert();
-
-            }
+            revert();
 
         }
 

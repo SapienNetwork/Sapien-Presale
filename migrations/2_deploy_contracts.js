@@ -1,5 +1,4 @@
 var Owned = artifacts.require('contracts/Owned.sol');
-var StringUtils = artifacts.require('contracts/StringUtils.sol');
 var TokenController = artifacts.require('contracts/TokenController.sol');
 var MultisigWallet = artifacts.require('contracts/MultisigWallet.sol');
 var SapienCrowdsale = artifacts.require('contracts/SapienCrowdsale.sol');
@@ -18,16 +17,15 @@ module.exports = async function(deployer, network, accounts) {
 
     const premintedTokens = 3 * 10 ** 9;
 
-    deployer.deploy(Owned, { from: accounts[1] });
-    deployer.deploy(StringUtils, { from: accounts[1] });
-    deployer.deploy(MultisigWallet, [accounts[0], accounts[1], accounts[2]], 2, {from: accounts[2]});
-    deployer.deploy(SapienToken, Owned.address, premintedTokens, {from: accounts[4]});
-    deployer.deploy(TokenController, SapienToken.address, Owned.address, {from: accounts[1]});
-    deployer.deploy(SapienCrowdsale, Owned.address, {from: accounts[0], gas: 4000000});
-    deployer.deploy(DynamicCrowdsale, Owned.address, {from: accounts[2]});
-    deployer.deploy(CrowdsaleStorage, Owned.address, {from: accounts[2]});
-    deployer.deploy(SPNStorage, Owned.address, {from: accounts[3]});
-    deployer.deploy(SapienStaking, SapienToken.address, Owned.address, {from: accounts[0], gas: 4000000});
+    await deployer.deploy(Owned, { from: accounts[0] });
+    await deployer.deploy(MultisigWallet, [accounts[0], accounts[1], accounts[2]], 2, {from: accounts[0]});
+    await deployer.deploy(SapienToken, Owned.address, premintedTokens, {from: accounts[0]});
+    await deployer.deploy(TokenController, SapienToken.address, Owned.address, {from: accounts[0]});
+    await deployer.deploy(SapienCrowdsale, Owned.address, {from: accounts[0], gas: 4000000});
+    await deployer.deploy(DynamicCrowdsale, Owned.address, {from: accounts[0]});
+    await deployer.deploy(CrowdsaleStorage, Owned.address, {from: accounts[0]});
+    await deployer.deploy(SPNStorage, Owned.address, {from: accounts[0]});
+    await deployer.deploy(SapienStaking, SapienToken.address, Owned.address, {from: accounts[0], gas: 4000000});
 
     //set Crowdsale as current controller, allowing the crowdsale to mint new tokens
     await web3.eth.contract(TokenController.abi).at(TokenController.address)

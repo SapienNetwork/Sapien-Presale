@@ -61,7 +61,7 @@ contract SapienCrowdsaleInterface {
     function buyTokens() public payable;
 
     //How much bonus does one investor get for the ether sent
-    function getBonusRate(uint256 weiAmount) internal constant returns (uint256);
+    function getBonusRate(uint256 weiAmount) public constant returns (uint256);
 
     //Called by investors when they want to withdraw their investment; can be used before crowdsale ends
     function refundInvestment(uint256 weiAmount) public;
