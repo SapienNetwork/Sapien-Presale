@@ -33,11 +33,6 @@ contract('TokenController', function(accounts) {
 
     });
 
-    it("SapienToken deployed with SPN symbol", async function() {
-        let symbol = await token.symbol.call();
-
-        assert.equal(symbol, 'SPN', 'Symbol name is not SPN');
-    });
 
     it("Only owner can do certain actions", async function() {
         

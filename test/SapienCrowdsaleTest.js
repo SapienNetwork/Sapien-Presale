@@ -55,7 +55,7 @@ contract('SapienCrowdsale', function(accounts) {
     
     it("Deploys contract with correct hardcap", async function() {
         
-        await crowdsale.initialize(startBlock, endBlock, rate, wallet.address, cap, Controller.address, _storage.address, {from: accounts[0]});
+        await crowdsale.initialize(1, 2, rate, wallet.address, cap, Controller.address, _storage.address, {from: accounts[0]});
         const hardcap = await crowdsale.weiCap.call();
         assert.equal(hardcap.toString(), cap.toString(), "Deployed hardcap is not equal to hardcap");
 
@@ -64,7 +64,7 @@ contract('SapienCrowdsale', function(accounts) {
     // Need requires in the initialize function to be uncommented
 
     it("Checks that nobody can buy before the crowdsale begins", async function() {
-        await crowdsale.initialize(startBlock, endBlock, rate, wallet.address, cap, Controller.address, _storage.address, {from: accounts[0]});
+        await crowdsale.initialize(1, 2, rate, wallet.address, cap, Controller.address, _storage.address, {from: accounts[0]});
        
         await assertFail(async function() {
             await crowdsale.buyTokens({ value: web3.toWei(0.5), from: accounts[1] });
@@ -72,7 +72,7 @@ contract('SapienCrowdsale', function(accounts) {
     });
 
     it("Checks that only owner can pause campaign", async function() {
-        await crowdsale.initialize(startBlock, endBlock, rate, wallet.address, cap, Controller.address, _storage.address, {from: accounts[0]});
+        await crowdsale.initialize(1, 2, rate, wallet.address, cap, Controller.address, _storage.address, {from: accounts[0]});
        
         await assertFail(async function() {
             await crowdsale.pauseContribution({ from: accounts[1] });
@@ -87,7 +87,7 @@ contract('SapienCrowdsale', function(accounts) {
     // Need requires in the initialize function to be uncommented
 
     it("Checks that nobody can buy if the crowdsale is paused", async function() {
-        await crowdsale.initialize(startBlock, endBlock, rate, wallet.address, cap, Controller.address, _storage.address, {from: accounts[0], gas: 900000});
+        await crowdsale.initialize(1, 2, rate, wallet.address, cap, Controller.address, _storage.address, {from: accounts[0], gas: 900000});
     
         await crowdsale.pauseContribution({from: accounts[0]});
         await assertFail(async function() {
@@ -101,7 +101,7 @@ contract('SapienCrowdsale', function(accounts) {
 
     it("Checks that anyone can buy tokens after crowdsale has started", async function() {
 
-        await crowdsale.initialize(web3.eth.blockNumber, endBlock, rate, wallet.address, cap, Controller.address, _storage.address, {from: accounts[0], gas: 900000});
+        await crowdsale.initialize(0, 2, rate, wallet.address, cap, Controller.address, _storage.address, {from: accounts[0], gas: 900000});
 
         await crowdsale.buyTokens({ value: web3.toWei(1), from: accounts[1] });
 
@@ -117,7 +117,7 @@ contract('SapienCrowdsale', function(accounts) {
 
     it("Checks that investors can get a refund", async function() {
         
-        await crowdsale.initialize(web3.eth.blockNumber, endBlock + 1000, rate, wallet.address, cap, Controller.address, _storage.address, {from: accounts[0], gas: 900000});
+        await crowdsale.initialize(0, 1, rate, wallet.address, cap, Controller.address, _storage.address, {from: accounts[0], gas: 900000});
        
         await crowdsale.buyTokens({ value: web3.toWei(1), from: accounts[1] });
 
@@ -134,7 +134,7 @@ contract('SapienCrowdsale', function(accounts) {
     
     it("Checks if we computed the bonus correctly", async function() {
 
-        await crowdsale.initialize(web3.eth.blockNumber, endBlock, rate, wallet.address, cap, Controller.address, _storage.address, {from: accounts[0], gas: 900000});
+        await crowdsale.initialize(0, 1, rate, wallet.address, cap, Controller.address, _storage.address, {from: accounts[0], gas: 900000});
         
         let bonus = await crowdsale.getBonusRate(web3.toWei(0.5));
 
@@ -162,18 +162,20 @@ contract('SapienCrowdsale', function(accounts) {
 
     }); 
 
-    it("Checks that gas prices over 500K wei are rejected", async function() {
-        await crowdsale.initialize(web3.eth.blockNumber, endBlock, rate, wallet.address, cap, Controller.address, _storage.address, {from: accounts[0], gas: 900000});
+    //Need the validGasPrice for this
+
+    it("Checks that gas prices over 2M wei are rejected", async function() {
+        await crowdsale.initialize(0, 2, rate, wallet.address, cap, Controller.address, _storage.address, {from: accounts[0], gas: 900000});
     
         await crowdsale.resumeContribution({ from: accounts[0] }); //waste one block
         await assertFail(async function() {
-            await crowdsale.buyTokens({ value: 1000, from: accounts[1], gas: 5000009});
+            await crowdsale.buyTokens({ value: 1000, from: accounts[1], gas: 2000001});
         });
 
     });
 
     it("Checks crowdsale is over once hardcap is reached", async function() {
-        await crowdsale.initialize(web3.eth.blockNumber, endBlock, rate, wallet.address, cap, Controller.address, _storage.address, {from: accounts[0], gas: 900000});
+        await crowdsale.initialize(0, 2, rate, wallet.address, cap, Controller.address, _storage.address, {from: accounts[0], gas: 900000});
         
         await crowdsale.buyTokens({ value: cap, from: accounts[2] });
 
@@ -184,7 +186,7 @@ contract('SapienCrowdsale', function(accounts) {
     });
 
     it("Checks that investors can't claim tokens before the end", async function() {
-        await crowdsale.initialize(web3.eth.blockNumber, endBlock, rate, wallet.address, cap, Controller.address, _storage.address, {from: accounts[0], gas: 900000});
+        await crowdsale.initialize(0, 10, rate, wallet.address, cap, Controller.address, _storage.address, {from: accounts[0], gas: 900000});
         
         await assertFail(async function() {
             await crowdsale.claimTokens({from: accounts[1]});
@@ -192,17 +194,21 @@ contract('SapienCrowdsale', function(accounts) {
 
     });
 
-    it("Checks that contributed ether is forwarded to wallet", async function() {
-        await crowdsale.initialize(web3.eth.blockNumber, web3.eth.blockNumber + 1, rate, wallet.address, cap, Controller.address, _storage.address, {from: accounts[0], gas: 900000});
+    //Comment the validGasPrice modifier from buy for this test
 
-        await crowdsale.buyTokens({ value: web3.toWei(0.5), from: accounts[2] });
+    it("Checks that contributed ether is forwarded to wallet", async function() {
+        await crowdsale.initialize(0, 0, rate, wallet.address, cap, Controller.address, _storage.address, {from: accounts[0], gas: 900000});
+
+        let amountInvested = web3.toWei(0.5);
+
+        await crowdsale.buyTokens({ value: amountInvested, from: accounts[2] });
         
         let walletBalanceBefore = await web3.eth.getBalance(wallet.address).toNumber();
         
         await crowdsale.safeWithdrawal({ from: accounts[0] });
         let walletBalanceAfter = await web3.eth.getBalance(wallet.address).toNumber();
 
-        assert.equal(walletBalanceAfter, walletBalanceBefore + contributingAmount, "Balance contributed is not equal to wallet balance");
+        assert.equal(walletBalanceBefore + amountInvested, walletBalanceAfter, "Balance contributed is not equal to wallet balance");
 
     });
 
@@ -219,7 +225,7 @@ contract('SapienCrowdsale', function(accounts) {
         });
 
         await assertFail(async function() {
-            await crowdsale.initialize(web3.eth.blockNumber, web3.eth.blockNumber + 1, rate, wallet.address, cap, Controller.address, _storage.address, {from: accounts[0], gas: 900000});            
+            await crowdsale.initialize(0, 1, rate, wallet.address, cap, Controller.address, _storage.address, {from: accounts[0], gas: 900000});            
         });
 
         await assertFail(async function() {

@@ -26,7 +26,7 @@ contract SapienCrowdsaleInterface {
     function changeOwned(address _owned) public;
 
     //Initialize a new crowdsale
-    function initialize(uint256 _startBlock, uint256 _endBlock, uint256 _rate, address _wallet, uint256 _cap, address _token, address _storageAddress) public;
+    function initialize(uint256 hoursUntilStart, uint256 hoursUntilEnd, uint256 _rate, address _wallet, uint256 _cap, address _token, address _storageAddress) public;
 
     //Change a certain milestone bonus
     function changeBonusMilestone(uint256 position, uint256 newValue) public;
@@ -56,6 +56,12 @@ contract SapienCrowdsaleInterface {
 
     //Change how many SPN we offer for investments of under $10K
     function changeBaseRate(uint256 baseRate) public;
+
+    //Change max gas price allowed for buyTokens
+    function changeMaximumGasLimit(uint256 gasLimit) public;
+
+    //How much can an investor invest in the crowdsale at this moment?
+    function computeAllowedInvestment(uint256 investment) public constant returns (uint256);
 
     //Used by investors to buy tokens
     function buyTokens() public payable;

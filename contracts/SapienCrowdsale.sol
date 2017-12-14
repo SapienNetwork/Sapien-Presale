@@ -33,11 +33,11 @@ contract SapienCrowdsale is SapienCrowdsaleInterface {
     uint256 public blockAttack = 0;
 
      //maximum gas price for contribution transactions
-    uint256 public constant MAX_GAS_PRICE = 500000;
+    uint256 public constant MAX_GAS_PRICE = 2000000;
 
-    //start and end block where investments are allowed (both inclusive)
-    uint256 public startBlock;
-    uint256 public endBlock;
+    //start and end times where investments are allowed (both inclusive)
+    uint256 public startTime;
+    uint256 public endTime;
 
     //how many token units a buyer gets per wei
     uint256 public rate;
@@ -65,7 +65,7 @@ contract SapienCrowdsale is SapienCrowdsaleInterface {
 
     modifier afterDeadline() {
 
-        require(block.number >= endBlock);
+        require(block.timestamp >= endTime);
          _;
 
     }
@@ -87,7 +87,7 @@ contract SapienCrowdsale is SapienCrowdsaleInterface {
     //Check that campaign didn't end in order to allow refunds
     modifier refundCondition() {
 
-        require(block.number < endBlock);
+        require(block.timestamp < endTime);
         _;
 
     }
@@ -116,17 +116,17 @@ contract SapienCrowdsale is SapienCrowdsaleInterface {
 
     }
 
-    function initialize(uint256 _startBlock, uint256 _endBlock, uint256 _rate, address _wallet, uint256 _cap, address _token, address _storageAddress) public onlyOwner hatch {
+    function initialize(uint256 hoursUntilStart, uint256 hoursUntilEnd, uint256 _rate, address _wallet, uint256 _cap, address _token, address _storageAddress) public onlyOwner hatch {
 
-        require(_startBlock >= block.number);
-        require(_endBlock >= _startBlock);
+        require(hoursUntilStart >= 0);
+        require(hoursUntilEnd >= 0);
         require(_rate > 0);
         require(_wallet != 0x0);
         require(_cap > 0);
         require(_token != 0x0);
 
-        startBlock = _startBlock;
-        endBlock = _endBlock;
+        startTime = block.timestamp + hoursUntilStart * 1 hours;
+        endTime = startTime + hoursUntilEnd * 1 hours;
         rate = _rate;
         wallet = _wallet;
         weiCap = _cap;
@@ -182,8 +182,8 @@ contract SapienCrowdsale is SapienCrowdsaleInterface {
     }
 
     // use only official function to buy tokens
-    function () {
-        revert();
+    function () payable {
+        buyTokens();
     }
 
     function limitPerInvestor(uint256 limit) public onlyOwner hatch {
@@ -198,10 +198,13 @@ contract SapienCrowdsale is SapienCrowdsaleInterface {
 
     }
 
-    function buyTokens() public payable validGasPrice hatch {
-        
-        require(msg.value > 0);
-        require(_storage != CrowdsaleStorage(0));
+    function changeMaximumGasLimit(uint256 gasLimit) public onlyOwner {
+
+        MAX_GAS_PRICE = gasLimit;
+
+    }
+
+    function computeAllowedInvestment(uint256 investment) public constant returns (uint256) {
 
         uint256 allowed = 0;
         
@@ -240,9 +243,21 @@ contract SapienCrowdsale is SapienCrowdsaleInterface {
 
         }
 
+        return allowed;
+
+    }
+
+    function buyTokens() public payable validGasPrice hatch {
+        
+        require(msg.value > 0);
+        require(_storage != CrowdsaleStorage(0));
+
+        uint256 allowed = computeAllowedInvestment(msg.value);
+
         //Make necessary checks: the campaign didn't end, the investor is not a contract etc
      
         require(allowed > 0);
+
         require(validPurchase(msg.sender, allowed));
 
         //Compute the bonus for each investment
@@ -279,23 +294,23 @@ contract SapienCrowdsale is SapienCrowdsaleInterface {
 
         uint256 bonus = rate;
 
-        if (weiAmount >= bonusMilestones[0] * 10**18 && weiAmount < bonusMilestones[1] * 10**18) {
+        if (weiAmount >= bonusMilestones[0] * oneEther && weiAmount < bonusMilestones[1] * oneEther) {
 
             bonus = bonusRates[0];
 
-        } else if (weiAmount >= bonusMilestones[1] * 10**18 && weiAmount < bonusMilestones[2] * 10**18) {
+        } else if (weiAmount >= bonusMilestones[1] * oneEther && weiAmount < bonusMilestones[2] * oneEther) {
 
             bonus = bonusRates[1];
 
-        } else if (weiAmount >= bonusMilestones[2] * 10**18 && weiAmount < bonusMilestones[3] * 10**18) {
+        } else if (weiAmount >= bonusMilestones[2] * oneEther && weiAmount < bonusMilestones[3] * oneEther) {
 
             bonus = bonusRates[2];
 
-        } else if (weiAmount >= bonusMilestones[3] * 10**18 && weiAmount < bonusMilestones[4] * 10**18) {
+        } else if (weiAmount >= bonusMilestones[3] * oneEther && weiAmount < bonusMilestones[4] * oneEther) {
 
             bonus = bonusRates[3];
 
-        } else if (weiAmount >= bonusMilestones[4] * 10**18) {
+        } else if (weiAmount >= bonusMilestones[4] * oneEther) {
 
             bonus = bonusRates[4];
 
@@ -319,8 +334,11 @@ contract SapienCrowdsale is SapienCrowdsaleInterface {
 
     }
 
-    function safeWithdrawal() public afterDeadline onlyOwner hatch {
+    function safeWithdrawal() public //afterDeadline 
+    onlyOwner hatch {
         
+        require(wallet != address(0));
+
         uint256 funds = weiRaised;
 
         weiRaised = 0;
@@ -379,8 +397,8 @@ contract SapienCrowdsale is SapienCrowdsaleInterface {
     }
 
     function validPurchase(address investor, uint256 allowed) internal returns (bool) {
-        uint256 current = block.number;
-        bool withinPeriod = current >= startBlock && current <= endBlock;
+        uint256 current = block.timestamp;
+        bool withinPeriod = current >= startTime && current <= endTime;
         bool withinCap = weiRaised.add(allowed) <= weiCap;
         bool investorIsContract = isContract(investor);
         return withinCap && withinPeriod && !paused && !investorIsContract;
