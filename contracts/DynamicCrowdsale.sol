@@ -70,7 +70,7 @@ contract DynamicCrowdsale is DynamicCrowdsaleInterface {
 
     }
 
-    function allowedInvestment(uint256 totalWei) public returns (uint256) {
+    function allowedInvestment(uint256 totalWei) public constant returns (uint256) {
 
         if (totalWei > stages[position].permittedInvestment) {
 
@@ -84,7 +84,7 @@ contract DynamicCrowdsale is DynamicCrowdsaleInterface {
             
     }
 
-    function getCurrentStage() public returns (uint256) {
+    function getCurrentStage() public constant returns (uint256) {
 
         return position;
 
@@ -96,7 +96,7 @@ contract DynamicCrowdsale is DynamicCrowdsaleInterface {
 
     }
 
-    function getCurrentMaxInvestment() public returns (uint256) {
+    function getCurrentMaxInvestment() public constant returns (uint256) {
 
         return stages[position].permittedInvestment;
 

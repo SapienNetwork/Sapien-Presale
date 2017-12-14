@@ -25,49 +25,49 @@ contract MultiSigWallet is MultisigWalletInterface {
 
     modifier onlyWallet() {
         if (msg.sender != address(this))
-            throw;
+            revert();
         _;
     }
 
     modifier ownerDoesNotExist(address owner) {
         if (isOwner[owner])
-            throw;
+            revert();
         _;
     }
 
     modifier ownerExists(address owner) {
         if (!isOwner[owner])
-            throw;
+            revert();
         _;
     }
 
     modifier transactionExists(uint transactionId) {
         if (transactions[transactionId].destination == 0)
-            throw;
+            revert();
         _;
     }
 
     modifier confirmed(uint transactionId, address owner) {
         if (!confirmations[transactionId][owner])
-            throw;
+            revert();
         _;
     }
 
     modifier notConfirmed(uint transactionId, address owner) {
         if (confirmations[transactionId][owner])
-            throw;
+            revert();
         _;
     }
 
     modifier notExecuted(uint transactionId) {
         if (transactions[transactionId].executed)
-            throw;
+            revert();
         _;
     }
 
     modifier notNull(address _address) {
         if (_address == 0)
-            throw;
+            revert();
         _;
     }
 
