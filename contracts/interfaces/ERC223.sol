@@ -22,9 +22,6 @@ contract ERC223 is BaseERC223 {
     //Check if an address is from a contract
     function isContract(address _addr) private constant returns (bool is_contract);
 
-    //Change the storage where we manage unstaked SPN
-    function changeSPNStorage(address _storageAddr);
-
     /**
     * @dev Gets the balance of the specified address.
     * @param _owner The address to query the the balance of.

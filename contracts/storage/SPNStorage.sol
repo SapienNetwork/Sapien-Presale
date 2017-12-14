@@ -57,13 +57,13 @@ contract SPNStorage {
 
     }
 
-    function getUnstakedBalance(address _who) public constant onlyAllowedContracts returns (uint256) {
+    function getUnstakedBalance(address _who) public constant returns (uint256) {
 
         return balances[_who];
 
     }
 
-    function getStakedBalance(address _who) public constant onlyAllowedContracts returns (uint256) {
+    function getStakedBalance(address _who) public constant returns (uint256) {
 
         return stakedAmounts[_who];
 

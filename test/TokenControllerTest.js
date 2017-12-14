@@ -1,40 +1,70 @@
 let TokenController = artifacts.require('contracts/TokenController.sol');
 let Owned = artifacts.require('contracts/Owned.sol');
 let SapienToken = artifacts.require('contracts/SapienToken.sol');
+let SapienCrowdsale = artifacts.require('contracts/SapienCrowdsale.sol');
+let SPNStorage = artifacts.require('contracts/storage/SPNStorage.sol');
+
+const assertFail = require("./helpers/assertFail");
 
 contract('TokenController', function(accounts) {
 
+    let owned;
+    let spnStorage;
+    let token;
+    let controller;
+
+    const tokenAmount = 30 * 10 ** 18;
+
+    beforeEach(async () => {
+        
+        owned = await Owned.new({from: accounts[0]});
+
+        spnStorage = await SPNStorage.new(Owned.address, {from: accounts[0]});
+
+        token = await SapienToken.new(owned.address, tokenAmount, {from: accounts[0]});
+
+        controller = await TokenController.new(token.address, owned.address, {from: accounts[0]});
+
+        await spnStorage.addContract(token.address, {from: accounts[0]});
+
+        await token.changeController(controller.address, {from: accounts[0]});
+
+        await token.changeSPNStorage(spnStorage.address, {from: accounts[0]});        
+
+    });
+
     it("SapienToken deployed with SPN symbol", async function() {
-        let SPN = await SapienToken.new(TokenController.address, Owned.address);
-        let symbol = await SPN.symbol.call();
+        let symbol = await token.symbol.call();
 
         assert.equal(symbol, 'SPN', 'Symbol name is not SPN');
     });
 
-    it("Checks that SPN's Controller is transferable", async function() {
-        let SPN = await SapienToken.new(TokenController.address, Owned.address);
-        await SPN.changeController(TokenController.address);
-        const controller = await SPN.controller.call();
+    it("Only owner can do certain actions", async function() {
+        
+        await assertFail(async function() {
+            await controller.changeSPNToken(accounts[2], {from: accounts[1]});
+        });
 
-        assert.equal(controller, TokenController.address);
+        await assertFail(async function() {
+            await controller.changeOwned(accounts[1], {from: accounts[1]});
+        });
+
+        await assertFail(async function() {
+            await controller.changeCrowdsale(accounts[2], {from: accounts[1]});
+        });
 
     });
 
-    it("Checks that SPN is mintable", async function() {
-        let SPN = await SapienToken.new(TokenController.address, Owned.address);
-        let totalSupply = await SPN.totalSupply.call();
-        assert.equal(totalSupply, 0, "Initial total supply is not 0.");
-        let toMint = 100;
+    it("Owner can allocate tokens", async function() {
 
-        let controller = await TokenController.new(Owned.address);
+        await controller.allocateTokens(accounts[1], 100, {from: accounts[0]});
 
-        await controller.mint(accounts[1], toMint);
+        let circulation = await token.currentlyInCirculation.call();
 
-        totalSupply = await SPN.totalSupply.call();
-        assert.equal(totalSupply, toMint, `Total supply is not ${toMint}`);
+        assert.equal(100, circulation);
 
-        let accountBalance = await SPN.balanceOf(accounts[1]);
-        assert.equal(accountBalance, toMint, `Account balance is not ${toMint}`);
+        assert.equal(100, await token.balanceOf(accounts[1]));
+
     });
 
 });

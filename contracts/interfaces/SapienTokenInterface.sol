@@ -9,15 +9,18 @@ contract SapienTokenInterface is ERC223 {
     //Change the controller which assigns tokens from the campaign
     function changeController(address _controller) public;
 
+    //Change the storage where we manage unstaked SPN
+    function changeSPNStorage(address _storageAddr) public;
+
     /** 
     * Allow people to start staking tokens
     */
-    function enableStaking(address _stake);
+    function enableStaking(address _stake) public;
 
     /**
     *@dev Disable staking in case of attack/vulnerability/etc
     */
-    function disableStaking();
+    function disableStaking() public;
 
     //Called by the TokenController; assigning tokens to an address
     function addToBalance(address _to, uint256 _amount) public;

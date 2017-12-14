@@ -93,7 +93,7 @@ contract SapienToken is SapienTokenInterface {
 
     }
 
-    function changeSPNStorage(address _storageAddr) onlyOwner {
+    function changeSPNStorage(address _storageAddr) public onlyOwner {
 
         _storage = SPNStorage(_storageAddr);
 
