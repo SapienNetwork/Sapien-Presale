@@ -1,4 +1,4 @@
-pragma solidity ^0.4.15;
+pragma solidity ^0.4.18;
 
 /// @author Stefan Ionescu - <codrinionescu@yahoo.com>
 
@@ -19,7 +19,7 @@ contract SapienToken is SapienTokenInterface {
     string public symbol = "SPN";
 
     uint256 public decimals = 18;
-    uint256 internal canStake = 0;
+    uint256 public canStake = 0;
     uint256 public totalSupply = 0;
     uint256 public currentlyInCirculation = 0;
     uint256 blockAttack = 0;
@@ -78,7 +78,7 @@ contract SapienToken is SapienTokenInterface {
           Transfer(msg.sender, _to, _value, _data);
           return true;
 
-        } else if (!isContract(_to)) {
+        } else { 
 
           return transferToAddress(_to, _value, _data);
 

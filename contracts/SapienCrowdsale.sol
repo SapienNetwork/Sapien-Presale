@@ -1,4 +1,4 @@
-pragma solidity ^0.4.15;
+pragma solidity ^0.4.18;
 
 /// @author Stefan Ionescu - <codrinionescu@yahoo.com>
 
@@ -33,7 +33,7 @@ contract SapienCrowdsale is SapienCrowdsaleInterface {
     uint256 public blockAttack = 0;
 
      //maximum gas price for contribution transactions
-    uint256 public constant MAX_GAS_PRICE = 2000000;
+    uint256 public MAX_GAS_PRICE = 2000000;
 
     //start and end times where investments are allowed (both inclusive)
     uint256 public startTime;

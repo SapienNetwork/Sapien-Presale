@@ -1,9 +1,9 @@
-pragma solidity ^0.4.15;
+pragma solidity ^0.4.18;
 
 contract BaseERC223 {
 
     event FallbackData(bytes _data);
-    event Transfer(address indexed from, address indexed to, uint value, bytes indexed data);
+    event Transfer(address from, address to, uint value, bytes data);
 
     //Called when contract receives tokens
     function tokenFallback(address _from, uint _value, bytes _data) public;

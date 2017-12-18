@@ -103,11 +103,13 @@ contract('SapienCrowdsale', function(accounts) {
 
         await crowdsale.initialize(0, 2, rate, wallet.address, cap, Controller.address, _storage.address, {from: accounts[0], gas: 900000});
 
+        await crowdsale.changeMaximumGasLimit(500000000000000, {from: accounts[0]});
+
         await crowdsale.buyTokens({ value: web3.toWei(1), from: accounts[1] });
 
         let boughtTokens = await _storage.getInvestorTokens(accounts[1], {from: accounts[1]});
 
-        assertFail.equal(4000, boughtTokens)
+        assert.equal(4000, boughtTokens)
 
     });
 
@@ -119,6 +121,8 @@ contract('SapienCrowdsale', function(accounts) {
         
         await crowdsale.initialize(0, 1, rate, wallet.address, cap, Controller.address, _storage.address, {from: accounts[0], gas: 900000});
        
+        await crowdsale.changeMaximumGasLimit(500000000000000, {from: accounts[0]});        
+
         await crowdsale.buyTokens({ value: web3.toWei(1), from: accounts[1] });
 
         let investment = await _storage.getInvestorWei(accounts[1], {from: accounts[0]});
@@ -160,9 +164,7 @@ contract('SapienCrowdsale', function(accounts) {
         
         assert.equal(7000, bonus);
 
-    }); 
-
-    //Need the validGasPrice for this
+    });
 
     it("Checks that gas prices over 2M wei are rejected", async function() {
         await crowdsale.initialize(0, 2, rate, wallet.address, cap, Controller.address, _storage.address, {from: accounts[0], gas: 900000});
@@ -177,6 +179,8 @@ contract('SapienCrowdsale', function(accounts) {
     it("Checks crowdsale is over once hardcap is reached", async function() {
         await crowdsale.initialize(0, 2, rate, wallet.address, cap, Controller.address, _storage.address, {from: accounts[0], gas: 900000});
         
+        await crowdsale.changeMaximumGasLimit(500000000000000, {from: accounts[0]});        
+
         await crowdsale.buyTokens({ value: cap, from: accounts[2] });
 
         await assertFail(async function() {
@@ -194,12 +198,19 @@ contract('SapienCrowdsale', function(accounts) {
 
     });
 
-    //Comment the validGasPrice modifier from buy for this test
+    /**Comment this portion from buyTokens:
+     *
+     * require(hoursUntilStart >= 0);
+     * require(hoursUntilEnd >= 0); 
+     * 
+     */
 
     it("Checks that contributed ether is forwarded to wallet", async function() {
         await crowdsale.initialize(0, 0, rate, wallet.address, cap, Controller.address, _storage.address, {from: accounts[0], gas: 900000});
 
         let amountInvested = web3.toWei(0.5);
+
+        await crowdsale.changeMaximumGasLimit(500000000000000, {from: accounts[0]});        
 
         await crowdsale.buyTokens({ value: amountInvested, from: accounts[2] });
         
