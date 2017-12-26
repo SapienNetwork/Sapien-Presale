@@ -28,6 +28,8 @@ contract SapienToken is SapienTokenInterface {
 
     address internal stakeAddress;
 
+    address private upgradedContract;
+
     modifier onlyAllowedAddresses {
         require(msg.sender == owned.getOwner() || controller == msg.sender);
         _;
@@ -66,17 +68,31 @@ contract SapienToken is SapienTokenInterface {
       require(_value <= _storage.getUnstakedBalance(msg.sender));
       require(_storage != SPNStorage(0));
 
-      if(_to == stakeAddress && canStake == 1) {
-
-          _storage.decreaseUnstakedSPNBalance(msg.sender, _value);
+      if(_to != address(0) && _to == stakeAddress && canStake == 1) {
 
           SapienStakingInterface receiver = SapienStakingInterface(_to);
           receiver.tokenFallback(msg.sender, _value, _data);
         
           currentlyInCirculation = currentlyInCirculation.sub(_value);
 
+          _storage.decreaseUnstakedSPNBalance(msg.sender, _value);
+
           Transfer(msg.sender, _to, _value, _data);
+          
           return true;
+
+        } else if (_to != address(0) && _to == upgradedContract) {
+
+            SapienTokenInterface upgrade = SapienTokenInterface(_to);
+            upgrade.tokenFallback(msg.sender, _value, _data);
+
+            _storage.decreaseUnstakedSPNBalance(msg.sender, _value);
+
+            currentlyInCirculation = currentlyInCirculation.sub(_value);
+
+            Upgraded(msg.sender, _value);
+
+            return true;
 
         } else { 
 
@@ -96,6 +112,12 @@ contract SapienToken is SapienTokenInterface {
     function changeSPNStorage(address _storageAddr) public onlyOwner {
 
         _storage = SPNStorage(_storageAddr);
+
+    }
+
+    function allowUpgrade(address _upgradeAddr) public onlyOwner {
+
+        upgradedContract = _upgradeAddr;
 
     }
 

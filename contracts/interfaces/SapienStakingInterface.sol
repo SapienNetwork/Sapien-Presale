@@ -16,7 +16,7 @@ contract SapienStakingInterface is BaseERC223 {
     function changeActionCost(string _action, uint256 tokenAmount) public;
 
     //Change the storage where we manage staked tokens
-    function changeSPNStorage(address _storageAddr);
+    function changeSPNStorage(address _storageAddr) public;
 
     //Eliminate action from Sapien
     function deleteAction(string _action) public;

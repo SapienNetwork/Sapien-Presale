@@ -19,6 +19,8 @@ contract SapienStaking is SapienStakingInterface {
 
     address private sapienToken;
 
+    address private upgradedContract;
+
     uint256 blockAttack = 0;
 
     mapping(string => uint256) private actions;
@@ -55,16 +57,27 @@ contract SapienStaking is SapienStakingInterface {
         require(_value <= _storage.getStakedBalance(msg.sender));
         require(_storage != SPNStorage(0));
 
-        if (_to == sapienToken) {
-
-          _storage.decreaseStakedSPNBalance(msg.sender, _value);
+        if (_to != address(0) && _to == sapienToken) {
 
           SapienTokenInterface receiver = SapienTokenInterface(_to);
           receiver.tokenFallback(msg.sender, _value, _data);
 
+          _storage.decreaseStakedSPNBalance(msg.sender, _value);
+
           Transfer(msg.sender, _to, _value, _data);
         
           return true;
+
+        } else if (_to != address(0) && _to == upgradedContract) {
+
+            SapienStakingInterface upgrade = SapienStakingInterface(_to);
+            upgrade.tokenFallback(msg.sender, _value, _data);
+
+            _storage.decreaseStakedSPNBalance(msg.sender, _value);
+
+            Upgraded(msg.sender, _value);
+
+            return true;
 
         }
 
@@ -77,11 +90,19 @@ contract SapienStaking is SapienStakingInterface {
         
     }
 
+     function allowUpgrade(address _upgradeAddr) public onlyOwner {
+
+        upgradedContract = _upgradeAddr;
+
+    }
+
     function() payable {
 
         revert();
 
     }
+
+
 
     function changeOwned(address _owned) public onlyOwner {
 
@@ -95,7 +116,7 @@ contract SapienStaking is SapienStakingInterface {
 
     }
 
-    function changeSPNStorage(address _storageAddr) onlyOwner {
+    function changeSPNStorage(address _storageAddr) public onlyOwner {
 
         _storage = SPNStorage(_storageAddr);
 
@@ -126,12 +147,12 @@ contract SapienStaking is SapienStakingInterface {
     function tipUser(address _to, uint256 _amount) public hatch {
 
         require(_storage.getStakedBalance(msg.sender) >= _amount);
-        require(_amount > 0);
+        require(_amount > 0 && _amount <= 10);
         require(_storage != SPNStorage(0));
 
         _storage.decreaseStakedSPNBalance(msg.sender, _amount);
 
-        _storage.decreaseStakedSPNBalance(_to, _amount);
+        _storage.increaseStakedSPNBalance(_to, _amount);
 
         Tipped(msg.sender, _to, _amount);
 
@@ -142,6 +163,8 @@ contract SapienStaking is SapienStakingInterface {
         require(actions[_action] > 0);
         require(_storage != SPNStorage(0));
         require(_storage.getStakedBalance(msg.sender) > actions[_action]);
+
+        _storage.decreaseStakedSPNBalance(msg.sender, actions[_action]);
 
         MadeAnAction(msg.sender, _action, actions[_action]);
 
