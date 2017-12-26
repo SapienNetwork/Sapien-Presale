@@ -53,6 +53,8 @@ contract SapienCrowdsale is SapienCrowdsaleInterface {
 
     uint256 private oneEther = 10 ** 18;
 
+    string public currentBadge;
+
     //allows for owner to pause the campaign if needed
     bool public paused;
 
@@ -116,7 +118,7 @@ contract SapienCrowdsale is SapienCrowdsaleInterface {
 
     }
 
-    function initialize(uint256 hoursUntilStart, uint256 hoursUntilEnd, uint256 _rate, address _wallet, uint256 _cap, address _token, address _storageAddress) public onlyOwner hatch {
+    function initialize(uint256 hoursUntilStart, uint256 hoursUntilEnd, uint256 _rate, address _wallet, uint256 _cap, address _token, address _storageAddress, string badge) public onlyOwner hatch {
 
         require(hoursUntilStart >= 0);
         require(hoursUntilEnd >= 0);
@@ -132,6 +134,8 @@ contract SapienCrowdsale is SapienCrowdsaleInterface {
         weiCap = _cap;
         token = TokenControllerInterface(_token);
         _storage = CrowdsaleStorage(_storageAddress);
+
+        currentBadge = badge;
 
     }
 
@@ -276,6 +280,9 @@ contract SapienCrowdsale is SapienCrowdsaleInterface {
         //Update investor's info
         _storage.addInvestment(msg.sender, allowed, tokens);
 
+        //Set investor's badge
+        _storage.setBadge(msg.sender, currentBadge);
+
         //Broadcast event
         TokenPurchase(msg.sender, allowed, tokens);
 
@@ -329,6 +336,12 @@ contract SapienCrowdsale is SapienCrowdsaleInterface {
         _storage.withdrawInvestment(msg.sender, weiAmount, getBonusRate(weiAmount));
 
         weiRaised = weiRaised.sub(weiAmount);
+
+        if (_storage.getInvestorWei(msg.sender).sub(weiAmount) == 0) {
+
+            _storage.setBadge(msg.sender, "NONE");
+
+        }
 
         msg.sender.transfer(weiAmount);
 

@@ -29,6 +29,7 @@ contract CrowdsaleStorage {
 
         uint256 amountOfWeiInvested;
         uint256 calculatedTokens;
+        string badge;
 
     }
 
@@ -97,6 +98,12 @@ contract CrowdsaleStorage {
             investorInfo[investor].calculatedTokens.sub(tokenAmount);
 
         return true;
+
+    }
+
+    function setBadge(address investor, string _badge) public onlyAllowedContracts {
+
+        investorInfo[investor].badge = _badge;
 
     }
 

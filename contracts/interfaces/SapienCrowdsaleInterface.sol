@@ -26,7 +26,7 @@ contract SapienCrowdsaleInterface {
     function changeOwned(address _owned) public;
 
     //Initialize a new crowdsale
-    function initialize(uint256 hoursUntilStart, uint256 hoursUntilEnd, uint256 _rate, address _wallet, uint256 _cap, address _token, address _storageAddress) public;
+    function initialize(uint256 hoursUntilStart, uint256 hoursUntilEnd, uint256 _rate, address _wallet, uint256 _cap, address _token, address _storageAddress, string badge) public;
 
     //Change a certain milestone bonus
     function changeBonusMilestone(uint256 position, uint256 newValue) public;
